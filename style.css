@@ -1,8 +1,12 @@
 :root {
-  --bg: #0c1014;
+  --bg: #0a0e0c;
   --panel: #161c22;
   --accent: #4ade80;
   --accent-dark: #22c55e;
+  --gold: #facc15;
+  --gold-dark: #eab308;
+  --wood: #8b5e34;
+  --wood-dark: #5d4037;
   --text: #e7f1e8;
   --muted: #8a9a93;
   --grass: #2e7d32;
@@ -34,26 +38,36 @@ a {
   justify-content: space-between;
   gap: 16px;
   padding: 14px 24px;
-  background: var(--panel);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(180deg, #1a2118 0%, var(--panel) 100%);
+  border-bottom: 2px solid var(--gold);
   flex-wrap: wrap;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 800;
   font-size: 1.3rem;
   letter-spacing: 0.5px;
 }
 
 .logo {
-  font-size: 1.6rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  font-size: 1.4rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #1f2a1c, #0a0e0c);
+  border: 2px solid var(--gold);
+  box-shadow: inset 0 0 0 2px rgba(74, 222, 128, 0.35), 0 0 10px rgba(250, 204, 21, 0.35);
 }
 
 .brand-name {
-  color: var(--accent);
+  color: var(--gold);
+  text-shadow: 0 1px 6px rgba(250, 204, 21, 0.25);
 }
 
 .nav {
@@ -73,15 +87,15 @@ a {
 .nav a:hover,
 .nav a.active {
   color: var(--text);
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--gold);
 }
 
 .balance-pill {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  background: rgba(74, 222, 128, 0.08);
-  border: 1px solid rgba(74, 222, 128, 0.25);
+  background: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.25);
   border-radius: 10px;
   padding: 6px 14px;
   min-width: 140px;
@@ -96,7 +110,7 @@ a {
 
 #balance, #farmBalance {
   font-weight: 700;
-  color: var(--accent);
+  color: var(--gold);
 }
 
 main {
@@ -110,11 +124,24 @@ main {
 .hero {
   text-align: center;
   margin-bottom: 24px;
+  padding: 32px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(250, 204, 21, 0.15);
+  background:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255,255,255,0.55) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 14%, rgba(255,255,255,0.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 55% 28%, rgba(255,255,255,0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 35% 12%, rgba(255,255,255,0.4) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 92% 38%, rgba(255,255,255,0.3) 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 45%, rgba(255,255,255,0.3) 50%, transparent 51%),
+    linear-gradient(180deg, #0a0e14 0%, #0c1410 55%, #16331c 100%);
 }
 
 .hero h1 {
   font-size: 1.9rem;
   margin: 0 0 8px;
+  color: var(--gold);
+  text-shadow: 0 2px 10px rgba(250, 204, 21, 0.25);
 }
 
 .hero p {
@@ -122,6 +149,10 @@ main {
   max-width: 640px;
   margin: 0 auto;
   line-height: 1.5;
+}
+
+.hero p a {
+  color: var(--gold);
 }
 
 .game-wrap {
@@ -143,6 +174,7 @@ main {
   max-width: 800px;
   background: var(--panel);
   border: 1px solid rgba(255,255,255,0.06);
+  border-top: 3px solid var(--gold);
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 0.9rem;
@@ -244,6 +276,7 @@ main {
   margin: 24px auto 0;
   background: var(--panel);
   border: 1px solid rgba(255,255,255,0.06);
+  border-top: 3px solid var(--gold);
   border-radius: 8px;
   padding: 16px 20px;
 }
@@ -251,6 +284,7 @@ main {
 .leaderboard h2 {
   margin: 0 0 12px;
   font-size: 1.1rem;
+  color: var(--gold);
 }
 
 .leaderboard-list {
@@ -291,7 +325,7 @@ main {
 }
 
 .leaderboard-list .level {
-  color: var(--accent);
+  color: var(--gold);
   font-weight: 700;
 }
 
@@ -321,6 +355,7 @@ footer {
 .swap-card {
   background: var(--panel);
   border: 1px solid rgba(255,255,255,0.06);
+  border-top: 3px solid var(--gold);
   border-radius: 12px;
   padding: 24px;
   max-width: 420px;
@@ -329,6 +364,7 @@ footer {
 
 .swap-card h2 {
   margin-top: 0;
+  color: var(--gold);
 }
 
 .wallet-row {
@@ -360,9 +396,10 @@ button:hover {
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: #06210f;
+  background: linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+  color: #2b1d05;
   padding: 10px 18px;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.25);
 }
 
 .btn-secondary {
