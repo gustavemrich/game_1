@@ -201,7 +201,9 @@ const player = {
   x: 8 * TILE + TILE / 2,
   y: 15 * TILE + TILE / 2,
   size: 24,
-  speed: 2.8,
+  speed: 2.2,
+  vx: 0,
+  vy: 0,
 };
 
 function loadPlayerStyle() {
@@ -289,10 +291,30 @@ function update() {
   if (keys["arrowleft"] || keys["a"]) dx -= 1;
   if (keys["arrowright"] || keys["d"]) dx += 1;
 
+  // Smoothly accelerate/decelerate towards the target direction so
+  // movement feels less twitchy and abrupt key taps don't snap the player.
+  const accel = 0.45;
+  const friction = 0.78;
   if (dx || dy) {
     const len = Math.hypot(dx, dy);
-    player.x += (dx / len) * player.speed;
-    player.y += (dy / len) * player.speed;
+    player.vx += (dx / len) * player.speed * accel;
+    player.vy += (dy / len) * player.speed * accel;
+  } else {
+    player.vx *= friction;
+    player.vy *= friction;
+  }
+
+  const speedNow = Math.hypot(player.vx, player.vy);
+  if (speedNow > player.speed) {
+    player.vx = (player.vx / speedNow) * player.speed;
+    player.vy = (player.vy / speedNow) * player.speed;
+  }
+  if (Math.abs(player.vx) < 0.01) player.vx = 0;
+  if (Math.abs(player.vy) < 0.01) player.vy = 0;
+
+  if (player.vx || player.vy) {
+    player.x += player.vx;
+    player.y += player.vy;
     player.x = Math.max(player.size / 2, Math.min(COLS * TILE - player.size / 2, player.x));
     player.y = Math.max(player.size / 2, Math.min(ROWS * TILE - player.size / 2, player.y));
   }
