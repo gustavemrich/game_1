@@ -1,0 +1,83 @@
+const WALLET_KEY = "farmWallet";
+
+const wallet = localStorage.getItem(WALLET_KEY) || null;
+
+const leaderboardListEl = document.getElementById("leaderboardList");
+const tabsEl = document.getElementById("leaderboardTabs");
+
+let supabaseClient = null;
+if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY && typeof window.supabase !== "undefined") {
+  supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+}
+
+function shortWallet(addr) {
+  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+}
+
+function levelForXp(xp) {
+  return Math.floor(xp / 100) + 1;
+}
+
+const TAB_CONFIG = {
+  xp: { column: "xp", label: "XP" },
+  mining_xp: { column: "mining_xp", label: "Mining XP" },
+  fishing_xp: { column: "fishing_xp", label: "Fishing XP" },
+  farming_xp: { column: "farming_xp", label: "Farming XP" },
+};
+
+let activeTab = "xp";
+
+async function loadLeaderboard(tab) {
+  if (!supabaseClient) {
+    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Multiplayer not configured.</li>';
+    return;
+  }
+  const config = TAB_CONFIG[tab];
+  leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Loading…</li>';
+  try {
+    const { data, error } = await supabaseClient
+      .from("players")
+      .select("wallet, name, level, xp, mining_xp, fishing_xp, farming_xp")
+      .order(config.column, { ascending: false })
+      .limit(10);
+    if (error) throw error;
+    renderLeaderboard(data || [], config);
+  } catch (err) {
+    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Leaderboard unavailable — run supabase/schema.sql in your Supabase project.</li>';
+  }
+}
+
+function renderLeaderboard(rows, config) {
+  if (!rows.length) {
+    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">No grinders yet — be the first!</li>';
+    return;
+  }
+  leaderboardListEl.innerHTML = rows
+    .map((row, i) => {
+      const isSelf = wallet && row.wallet === wallet;
+      const name = row.name && row.name.trim() ? row.name.trim() : shortWallet(row.wallet);
+      const value = parseFloat(row[config.column]) || 0;
+      return `<li class="${isSelf ? "self" : ""}">
+        <span class="rank">#${i + 1}</span>
+        <span class="wallet">${name}</span>
+        <span class="level">Lv.${row.level}</span>
+        <span class="xp">${Math.floor(value)} ${config.label}</span>
+      </li>`;
+    })
+    .join("");
+}
+
+tabsEl.addEventListener("click", (e) => {
+  const btn = e.target.closest(".tab-btn");
+  if (!btn) return;
+  const tab = btn.dataset.tab;
+  if (tab === activeTab) return;
+  activeTab = tab;
+  for (const b of tabsEl.querySelectorAll(".tab-btn")) {
+    b.classList.toggle("active", b === btn);
+  }
+  loadLeaderboard(activeTab);
+});
+
+loadLeaderboard(activeTab);
+setInterval(() => loadLeaderboard(activeTab), 8000);

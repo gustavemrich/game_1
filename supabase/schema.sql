@@ -24,11 +24,20 @@
 
 create table if not exists players (
   wallet text primary key check (char_length(wallet) between 32 and 44),
+  name text check (name is null or char_length(name) <= 24),
   level integer not null default 1 check (level >= 1),
   xp numeric not null default 0 check (xp >= 0),
   balance numeric not null default 0 check (balance >= 0),
+  mining_xp numeric not null default 0 check (mining_xp >= 0),
+  fishing_xp numeric not null default 0 check (fishing_xp >= 0),
+  farming_xp numeric not null default 0 check (farming_xp >= 0),
   updated_at timestamptz not null default now()
 );
+
+alter table players add column if not exists name text check (name is null or char_length(name) <= 24);
+alter table players add column if not exists mining_xp numeric not null default 0 check (mining_xp >= 0);
+alter table players add column if not exists fishing_xp numeric not null default 0 check (fishing_xp >= 0);
+alter table players add column if not exists farming_xp numeric not null default 0 check (farming_xp >= 0);
 
 alter table players enable row level security;
 
@@ -49,8 +58,9 @@ create policy "Public update access" on players
 -- hasn't played yet.
 create or replace function enforce_player_insert() returns trigger as $$
 begin
-  if new.level <> 1 or new.xp <> 0 or new.balance <> 0 then
-    raise exception 'new players must start at level 1 with 0 xp and 0 balance';
+  if new.level <> 1 or new.xp <> 0 or new.balance <> 0
+     or new.mining_xp <> 0 or new.fishing_xp <> 0 or new.farming_xp <> 0 then
+    raise exception 'new players must start at level 1 with 0 xp, 0 balance and 0 category xp';
   end if;
   return new;
 end;
@@ -82,6 +92,18 @@ begin
 
   if new.balance > old.balance + max_gain then
     raise exception 'balance increase too large for elapsed time';
+  end if;
+
+  if new.mining_xp > old.mining_xp + max_gain then
+    raise exception 'mining_xp increase too large for elapsed time';
+  end if;
+
+  if new.fishing_xp > old.fishing_xp + max_gain then
+    raise exception 'fishing_xp increase too large for elapsed time';
+  end if;
+
+  if new.farming_xp > old.farming_xp + max_gain then
+    raise exception 'farming_xp increase too large for elapsed time';
   end if;
 
   if new.level <> floor(new.xp / 100) + 1 then

@@ -2,6 +2,10 @@ const TOKEN_KEY = "farmTokenBalance";
 const XP_KEY = "farmXp";
 const WALLET_KEY = "farmWallet";
 const PLAYER_STYLE_KEY = "farmPlayerStyle";
+const NAME_KEY = "farmPlayerName";
+const MINING_XP_KEY = "farmMiningXp";
+const FISHING_XP_KEY = "farmFishingXp";
+const FARMING_XP_KEY = "farmFarmingXp";
 
 const TILE = 32;
 const COLS = 70;
@@ -33,12 +37,12 @@ const levelDisplayEl = document.getElementById("levelDisplay");
 const walletGate = document.getElementById("walletGate");
 const gateConnectBtn = document.getElementById("gateConnectBtn");
 const gateStatus = document.getElementById("gateStatus");
-const leaderboardListEl = document.getElementById("leaderboardList");
 const startScreen = document.getElementById("startScreen");
 const startPlayBtn = document.getElementById("startPlayBtn");
 const startOnlineCountEl = document.getElementById("startOnlineCount");
 const chatMessagesEl = document.getElementById("chatMessages");
 const chatInputEl = document.getElementById("chatInput");
+const nameBtn = document.getElementById("nameBtn");
 
 const otherPlayers = {};
 
@@ -63,6 +67,51 @@ function getXp() {
 function setXp(value) {
   localStorage.setItem(XP_KEY, value.toFixed(2));
   levelDisplayEl.textContent = `Lv. ${levelForXp(value)}`;
+}
+
+function getCategoryXp(key) {
+  return parseFloat(localStorage.getItem(key) || "0");
+}
+
+function setCategoryXp(key, value) {
+  localStorage.setItem(key, value.toFixed(2));
+}
+
+function getMiningXp() {
+  return getCategoryXp(MINING_XP_KEY);
+}
+
+function getFishingXp() {
+  return getCategoryXp(FISHING_XP_KEY);
+}
+
+function getFarmingXp() {
+  return getCategoryXp(FARMING_XP_KEY);
+}
+
+// --- Display name ---
+function getName() {
+  return (localStorage.getItem(NAME_KEY) || "").trim();
+}
+
+function setName(value) {
+  const trimmed = value.trim().slice(0, 24);
+  if (trimmed) {
+    localStorage.setItem(NAME_KEY, trimmed);
+  } else {
+    localStorage.removeItem(NAME_KEY);
+  }
+  updateNameBtn();
+}
+
+function displayName(fallback) {
+  return getName() || fallback;
+}
+
+function updateNameBtn() {
+  if (!nameBtn) return;
+  const name = getName();
+  nameBtn.textContent = name ? `✏️ ${name}` : "✏️ Set name";
 }
 
 // --- World ---
@@ -102,6 +151,24 @@ const RESOURCE_TYPES = {
   copper: { icon: "⛏️", gatherTime: 2000, cooldown: 16000, reward: [3, 7], fail: 0, rarity: "common" },
   silver: { icon: "🔩", gatherTime: 4500, cooldown: 38000, reward: [12, 22], fail: 0, rarity: "uncommon" },
   gold: { icon: "💎", gatherTime: 9000, cooldown: 100000, reward: [35, 60], fail: 0.2, rarity: "rare" },
+};
+
+const RESOURCE_CATEGORY = {
+  wheat: "farming",
+  corn: "farming",
+  pumpkin: "farming",
+  commonFish: "fishing",
+  bigFish: "fishing",
+  legendaryFish: "fishing",
+  copper: "mining",
+  silver: "mining",
+  gold: "mining",
+};
+
+const CATEGORY_XP_KEYS = {
+  farming: FARMING_XP_KEY,
+  fishing: FISHING_XP_KEY,
+  mining: MINING_XP_KEY,
 };
 
 // --- Deterministic world layout (same map for every player) ---
@@ -360,6 +427,11 @@ function update() {
       const reward = min + Math.random() * (max - min);
       setBalance(getBalance() + reward);
       setXp(getXp() + reward);
+      const category = RESOURCE_CATEGORY[node.type];
+      if (category) {
+        const key = CATEGORY_XP_KEYS[category];
+        setCategoryXp(key, getCategoryXp(key) + reward);
+      }
       floatingTexts.push({ x: cx, y: cy, text: `+${reward.toFixed(2)} $FARM`, life: 900, start: now, color: "#4ade80" });
       syncPlayerToServer();
     }
@@ -494,7 +566,7 @@ function draw() {
   const selfTool = activeNode ? toolForType(activeNode.type) : null;
   const selfGathering = !!(activeNode && activeNode.gathering);
 
-  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), wallet ? shortWallet(wallet) : "you", selfTool, selfGathering);
+  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), displayName(wallet ? shortWallet(wallet) : "you"), selfTool, selfGathering);
 
   for (const ft of floatingTexts) {
     const elapsed = now - ft.start;
@@ -654,6 +726,17 @@ const hud = document.getElementById("hud");
 const hudToggle = document.getElementById("hudToggle");
 hudToggle.addEventListener("click", () => hud.classList.toggle("collapsed"));
 
+updateNameBtn();
+if (nameBtn) {
+  nameBtn.addEventListener("click", () => {
+    const current = getName();
+    const input = prompt("Set your display name (max 24 characters):", current);
+    if (input === null) return;
+    setName(input);
+    syncPlayerToServer();
+  });
+}
+
 (async function tryAutoConnect() {
   const provider = getProvider();
   if (!wallet || !provider) return;
@@ -712,7 +795,7 @@ chatInputEl.addEventListener("keydown", (e) => {
   const text = chatInputEl.value.trim();
   chatInputEl.value = "";
   if (!text) return;
-  const label = wallet ? shortWallet(wallet) : "anon";
+  const label = displayName(wallet ? shortWallet(wallet) : "anon");
   appendChatMessage(label, text);
   if (chatChannel) {
     chatChannel.send({
@@ -772,7 +855,7 @@ if (supabaseClient) {
             emoji: playerStyle.emoji,
             color: playerStyle.color,
             level: levelForXp(getXp()),
-            label: wallet ? shortWallet(wallet) : "anon",
+            label: displayName(wallet ? shortWallet(wallet) : "anon"),
             tool: activeNode ? toolForType(activeNode.type) : null,
             gathering: !!(activeNode && activeNode.gathering),
           },
@@ -792,14 +875,20 @@ async function loadPlayerFromServer() {
     if (data) {
       const serverXp = parseFloat(data.xp) || 0;
       const serverBalance = parseFloat(data.balance) || 0;
+      const serverMiningXp = parseFloat(data.mining_xp) || 0;
+      const serverFishingXp = parseFloat(data.fishing_xp) || 0;
+      const serverFarmingXp = parseFloat(data.farming_xp) || 0;
       if (serverXp > getXp()) setXp(serverXp);
       if (serverBalance > getBalance()) setBalance(serverBalance);
+      if (serverMiningXp > getMiningXp()) setCategoryXp(MINING_XP_KEY, serverMiningXp);
+      if (serverFishingXp > getFishingXp()) setCategoryXp(FISHING_XP_KEY, serverFishingXp);
+      if (serverFarmingXp > getFarmingXp()) setCategoryXp(FARMING_XP_KEY, serverFarmingXp);
+      if (data.name && !getName()) setName(data.name);
     }
   } catch (err) {
     console.warn("Could not load player from Supabase", err);
   }
   syncPlayerToServer();
-  refreshLeaderboard();
 }
 
 async function syncPlayerToServer() {
@@ -810,9 +899,13 @@ async function syncPlayerToServer() {
   try {
     await supabaseClient.from("players").upsert({
       wallet,
+      name: getName() || null,
       level,
       xp,
       balance,
+      mining_xp: getMiningXp(),
+      fishing_xp: getFishingXp(),
+      farming_xp: getFarmingXp(),
       updated_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -820,44 +913,6 @@ async function syncPlayerToServer() {
   }
 }
 
-async function refreshLeaderboard() {
-  if (!supabaseClient) {
-    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Multiplayer not configured.</li>';
-    return;
-  }
-  try {
-    const { data, error } = await supabaseClient
-      .from("players")
-      .select("wallet, level, xp")
-      .order("xp", { ascending: false })
-      .limit(10);
-    if (error) throw error;
-    renderLeaderboard(data || []);
-  } catch (err) {
-    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Leaderboard unavailable — run supabase/schema.sql in your Supabase project.</li>';
-  }
-}
-
-function renderLeaderboard(rows) {
-  if (!rows.length) {
-    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">No grinders yet — be the first!</li>';
-    return;
-  }
-  leaderboardListEl.innerHTML = rows
-    .map((row, i) => {
-      const isSelf = wallet && row.wallet === wallet;
-      return `<li class="${isSelf ? "self" : ""}">
-        <span class="rank">#${i + 1}</span>
-        <span class="wallet">${shortWallet(row.wallet)}</span>
-        <span class="level">Lv.${row.level}</span>
-        <span class="xp">${Math.floor(row.xp)} XP</span>
-      </li>`;
-    })
-    .join("");
-}
-
-setInterval(refreshLeaderboard, 8000);
 setInterval(syncPlayerToServer, 10000);
-refreshLeaderboard();
 
 loop();

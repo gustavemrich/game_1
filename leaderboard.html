@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$FARM — Leaderboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🌾</span>
+    <span class="brand-name">$FARM</span>
+  </div>
+  <nav class="nav">
+    <a href="/">Play</a>
+    <a href="/leaderboard" class="active">Leaderboard</a>
+    <a href="/swap">Swap</a>
+    <a href="https://x.com/farmcoinpf" target="_blank" rel="noopener" class="social-link" aria-label="Follow $FARM on X">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+    </a>
+  </nav>
+</header>
+
+<main>
+  <section class="leaderboard">
+    <h2>🏆 Top Grinders</h2>
+    <div class="leaderboard-tabs" id="leaderboardTabs">
+      <button class="tab-btn active" data-tab="xp">Top Level</button>
+      <button class="tab-btn" data-tab="mining_xp">Top Miner</button>
+      <button class="tab-btn" data-tab="fishing_xp">Top Fisher</button>
+      <button class="tab-btn" data-tab="farming_xp">Top Farmer</button>
+    </div>
+    <ol class="leaderboard-list" id="leaderboardList">
+      <li class="leaderboard-empty">Loading…</li>
+    </ol>
+  </section>
+</main>
+
+<footer>
+  <p class="ca-pill">CA: <span class="ca-value">Coming soon</span></p>
+</footer>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="leaderboard.js"></script>
+</body>
+</html>
