@@ -14,6 +14,8 @@ const ctx = canvas.getContext("2d");
 const balanceEl = document.getElementById("balance");
 const onlineCountEl = document.getElementById("onlineCount");
 
+const otherPlayers = {};
+
 function getBalance() {
   return parseFloat(localStorage.getItem(TOKEN_KEY) || "0");
 }
@@ -313,8 +315,6 @@ setBalance(getBalance());
 loop();
 
 // --- Multiplayer (Supabase Realtime) ---
-const otherPlayers = {};
-
 function updateOnlineCount() {
   const now = Date.now();
   const cutoff = now - 8000;
