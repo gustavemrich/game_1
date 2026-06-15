@@ -4,19 +4,28 @@ const WALLET_KEY = "farmWallet";
 const PLAYER_STYLE_KEY = "farmPlayerStyle";
 
 const TILE = 32;
-const COLS = 50;
-const ROWS = 30;
-const VIEW_W = 800;
-const VIEW_H = 480;
+const COLS = 70;
+const ROWS = 44;
+let VIEW_W = 800;
+let VIEW_H = 480;
 
 const canvas = document.getElementById("game");
 const DPR = window.devicePixelRatio || 1;
-canvas.width = VIEW_W * DPR;
-canvas.height = VIEW_H * DPR;
-canvas.style.width = `${VIEW_W}px`;
-canvas.style.height = `${VIEW_H}px`;
 const ctx = canvas.getContext("2d");
-ctx.scale(DPR, DPR);
+
+function resizeCanvas() {
+  const topbar = document.querySelector(".topbar");
+  const topbarH = topbar ? topbar.getBoundingClientRect().height : 0;
+  VIEW_W = Math.min(window.innerWidth, COLS * TILE);
+  VIEW_H = Math.min(window.innerHeight - topbarH, ROWS * TILE);
+  canvas.width = VIEW_W * DPR;
+  canvas.height = VIEW_H * DPR;
+  canvas.style.width = `${VIEW_W}px`;
+  canvas.style.height = `${VIEW_H}px`;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
 
 const balanceEl = document.getElementById("balance");
 const onlineCountEl = document.getElementById("onlineCount");
@@ -135,12 +144,12 @@ function paintBlob(cx, cy, radius, type) {
 }
 
 // Ponds
-for (let i = 0; i < 6; i++) {
+for (let i = 0; i < 12; i++) {
   paintBlob(2 + rng() * (COLS - 4), 2 + rng() * (ROWS - 4), 2 + rng() * 2.5, "water");
 }
 
 // Mining patches
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < 10; i++) {
   paintBlob(2 + rng() * (COLS - 4), 2 + rng() * (ROWS - 4), 2 + rng() * 2.5, "rock");
 }
 
@@ -181,23 +190,23 @@ function scatterOnTerrain(terrainType, count, place) {
 }
 
 // Farmland
-scatterOnTerrain("grass", 22, (c, r) => addNode(c, r, "wheat"));
-scatterOnTerrain("grass", 7, (c, r) => addNode(c, r, "corn"));
-scatterOnTerrain("grass", 2, (c, r) => addNode(c, r, "pumpkin"));
-scatterOnTerrain("grass", 40, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
-scatterOnTerrain("grass", 25, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
+scatterOnTerrain("grass", 45, (c, r) => addNode(c, r, "wheat"));
+scatterOnTerrain("grass", 14, (c, r) => addNode(c, r, "corn"));
+scatterOnTerrain("grass", 4, (c, r) => addNode(c, r, "pumpkin"));
+scatterOnTerrain("grass", 80, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
+scatterOnTerrain("grass", 50, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
 
 // Ponds
-scatterOnTerrain("water", 10, (c, r) => addNode(c, r, "commonFish"));
-scatterOnTerrain("water", 4, (c, r) => addNode(c, r, "bigFish"));
-scatterOnTerrain("water", 2, (c, r) => addNode(c, r, "legendaryFish"));
-scatterOnTerrain("water", 8, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
+scatterOnTerrain("water", 20, (c, r) => addNode(c, r, "commonFish"));
+scatterOnTerrain("water", 8, (c, r) => addNode(c, r, "bigFish"));
+scatterOnTerrain("water", 4, (c, r) => addNode(c, r, "legendaryFish"));
+scatterOnTerrain("water", 16, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
 
 // Mining patches
-scatterOnTerrain("rock", 10, (c, r) => addNode(c, r, "copper"));
-scatterOnTerrain("rock", 4, (c, r) => addNode(c, r, "silver"));
-scatterOnTerrain("rock", 2, (c, r) => addNode(c, r, "gold"));
-scatterOnTerrain("rock", 15, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
+scatterOnTerrain("rock", 20, (c, r) => addNode(c, r, "copper"));
+scatterOnTerrain("rock", 8, (c, r) => addNode(c, r, "silver"));
+scatterOnTerrain("rock", 4, (c, r) => addNode(c, r, "gold"));
+scatterOnTerrain("rock", 30, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
 
 // --- Player ---
 const player = {
@@ -629,6 +638,10 @@ gateConnectBtn.addEventListener("click", connectWallet);
 startPlayBtn.addEventListener("click", () => {
   startScreen.classList.add("hidden");
 });
+
+const hud = document.getElementById("hud");
+const hudToggle = document.getElementById("hudToggle");
+hudToggle.addEventListener("click", () => hud.classList.toggle("collapsed"));
 
 (async function tryAutoConnect() {
   const provider = getProvider();

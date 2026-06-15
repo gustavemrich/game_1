@@ -45,11 +45,6 @@
 </header>
 
 <main>
-  <section class="hero">
-    <h1>Farm. Fish. Mine. Earn $FARM.</h1>
-    <p>Walk around the bigger world and gather resources from the fields, the lake, and the mountains. Every haul earns you $FARM and XP — level up, climb the leaderboard, and head to the <a href="/swap">Swap</a> page to check your stash.</p>
-  </section>
-
   <section class="game-wrap">
     <div class="canvas-frame">
       <canvas id="game"></canvas>
@@ -61,23 +56,26 @@
           <p class="note" id="gateStatus"></p>
         </div>
       </div>
-    </div>
-    <div class="hud">
-      <div class="hud-row"><strong>Move:</strong> Arrow keys / WASD</div>
-      <div class="hud-row"><strong>Gather:</strong> Press E or Space near a resource spot</div>
-      <div class="hud-row legend">
-        <span><span class="dot grass"></span> Fields: 🌾 wheat, 🌽 corn, 🎃 pumpkin (rare)</span>
-      </div>
-      <div class="hud-row legend">
-        <span><span class="dot water"></span> Lake: 🐟 common, 🐡 big fish, 🦈 legendary (rare)</span>
-      </div>
-      <div class="hud-row legend">
-        <span><span class="dot rock"></span> Mountains: ⛏️ copper, 🔩 silver, 💎 gold (rare, slow)</span>
-      </div>
-      <div class="hud-row legend">
-        <span><span class="rarity-dot" style="background: rgba(255,255,255,0.3)"></span> Common</span>
-        <span><span class="rarity-dot" style="background: #60a5fa"></span> Uncommon</span>
-        <span><span class="rarity-dot" style="background: #facc15"></span> Rare (longer, bigger reward)</span>
+      <div class="hud collapsed" id="hud">
+        <button class="hud-toggle" id="hudToggle">ℹ️ Controls &amp; Legend</button>
+        <div class="hud-body" id="hudBody">
+          <div class="hud-row"><strong>Move:</strong> Arrow keys / WASD</div>
+          <div class="hud-row"><strong>Gather:</strong> Press E or Space near a resource spot</div>
+          <div class="hud-row legend">
+            <span><span class="dot grass"></span> Fields: 🌾 wheat, 🌽 corn, 🎃 pumpkin (rare)</span>
+          </div>
+          <div class="hud-row legend">
+            <span><span class="dot water"></span> Lake: 🐟 common, 🐡 big fish, 🦈 legendary (rare)</span>
+          </div>
+          <div class="hud-row legend">
+            <span><span class="dot rock"></span> Mountains: ⛏️ copper, 🔩 silver, 💎 gold (rare, slow)</span>
+          </div>
+          <div class="hud-row legend">
+            <span><span class="rarity-dot" style="background: rgba(255,255,255,0.3)"></span> Common</span>
+            <span><span class="rarity-dot" style="background: #60a5fa"></span> Uncommon</span>
+            <span><span class="rarity-dot" style="background: #facc15"></span> Rare (longer, bigger reward)</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>

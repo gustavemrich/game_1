@@ -125,70 +125,58 @@ a {
 
 main {
   flex: 1;
-  max-width: 960px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 16px 48px;
-}
-
-.hero {
-  text-align: center;
-  margin-bottom: 24px;
-  padding: 32px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(250, 204, 21, 0.15);
-  background:
-    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255,255,255,0.55) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 78% 14%, rgba(255,255,255,0.5) 50%, transparent 51%),
-    radial-gradient(1px 1px at 55% 28%, rgba(255,255,255,0.4) 50%, transparent 51%),
-    radial-gradient(1px 1px at 35% 12%, rgba(255,255,255,0.4) 50%, transparent 51%),
-    radial-gradient(1.5px 1.5px at 92% 38%, rgba(255,255,255,0.3) 50%, transparent 51%),
-    radial-gradient(1px 1px at 6% 45%, rgba(255,255,255,0.3) 50%, transparent 51%),
-    linear-gradient(180deg, #0a0e14 0%, #0c1410 55%, #16331c 100%);
-}
-
-.hero h1 {
-  font-size: 1.9rem;
-  margin: 0 0 8px;
-  color: var(--gold);
-  text-shadow: 0 2px 10px rgba(250, 204, 21, 0.25);
-}
-
-.hero p {
-  color: var(--muted);
-  max-width: 640px;
-  margin: 0 auto;
-  line-height: 1.5;
-}
-
-.hero p a {
-  color: var(--gold);
+  padding: 0 16px 32px;
 }
 
 .game-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
 
 #game {
+  display: block;
   background: var(--panel);
-  border: 2px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  max-width: 100%;
+  border-bottom: 2px solid rgba(255,255,255,0.08);
 }
 
 .hud {
-  width: 100%;
-  max-width: 800px;
-  background: var(--panel);
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  max-width: 360px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  background: rgba(22, 28, 34, 0.85);
+  backdrop-filter: blur(4px);
   border: 1px solid rgba(255,255,255,0.06);
   border-top: 3px solid var(--gold);
   border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 0.9rem;
+  padding: 8px 12px;
+  font-size: 0.8rem;
   color: var(--muted);
+}
+
+.hud-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.hud.collapsed .hud-body {
+  display: none;
 }
 
 .hud-row {
@@ -241,7 +229,7 @@ main {
 
 .canvas-frame {
   position: relative;
-  max-width: 100%;
+  width: 100%;
 }
 
 .start-screen {
