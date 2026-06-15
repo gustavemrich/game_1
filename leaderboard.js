@@ -1,9 +1,14 @@
 const WALLET_KEY = "farmWallet";
+const XP_KEY = "farmXp";
+const TOKEN_KEY = "farmTokenBalance";
 
 const wallet = localStorage.getItem(WALLET_KEY) || null;
 
 const leaderboardListEl = document.getElementById("leaderboardList");
 const tabsEl = document.getElementById("leaderboardTabs");
+const balanceEl = document.getElementById("balance");
+const levelDisplayEl = document.getElementById("levelDisplay");
+const onlineCountEl = document.getElementById("onlineCount");
 
 let supabaseClient = null;
 if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY && typeof window.supabase !== "undefined") {
@@ -16,6 +21,49 @@ function shortWallet(addr) {
 
 function levelForXp(xp) {
   return Math.floor(xp / 100) + 1;
+}
+
+function getXp() {
+  return parseFloat(localStorage.getItem(XP_KEY) || "0");
+}
+
+function getBalance() {
+  return parseFloat(localStorage.getItem(TOKEN_KEY) || "0");
+}
+
+balanceEl.textContent = `${getBalance().toFixed(2)} $FARM`;
+levelDisplayEl.textContent = `Lv. ${levelForXp(getXp())}`;
+
+// --- Online player count ---
+const otherPlayers = {};
+
+function updateOnlineCount() {
+  const now = Date.now();
+  const cutoff = now - 8000;
+  let count = 1; // self
+  for (const id in otherPlayers) {
+    if (otherPlayers[id].ts >= cutoff) count++;
+  }
+  onlineCountEl.textContent = `${count} player${count === 1 ? "" : "s"}`;
+}
+setInterval(updateOnlineCount, 1000);
+
+if (supabaseClient) {
+  const channel = supabaseClient.channel("farm-world", {
+    config: { broadcast: { self: false } },
+  });
+  channel.on("broadcast", { event: "move" }, ({ payload }) => {
+    if (!payload) return;
+    otherPlayers[payload.id] = { ts: Date.now() };
+    updateOnlineCount();
+  });
+  channel.subscribe((status) => {
+    if (status === "SUBSCRIBED") {
+      onlineCountEl.textContent = "1 player";
+    }
+  });
+} else {
+  onlineCountEl.textContent = "Offline";
 }
 
 const TAB_CONFIG = {

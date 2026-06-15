@@ -42,7 +42,6 @@ const startPlayBtn = document.getElementById("startPlayBtn");
 const startOnlineCountEl = document.getElementById("startOnlineCount");
 const chatMessagesEl = document.getElementById("chatMessages");
 const chatInputEl = document.getElementById("chatInput");
-const nameBtn = document.getElementById("nameBtn");
 
 const otherPlayers = {};
 
@@ -106,12 +105,6 @@ function setName(value) {
 
 function displayName(fallback) {
   return getName() || fallback;
-}
-
-function updateNameBtn() {
-  if (!nameBtn) return;
-  const name = getName();
-  nameBtn.textContent = name ? `✏️ ${name}` : "✏️ Set name";
 }
 
 // --- World ---
@@ -710,6 +703,10 @@ async function connectWallet() {
     const resp = await provider.connect();
     wallet = resp.publicKey.toString();
     localStorage.setItem(WALLET_KEY, wallet);
+    if (!getName()) {
+      const input = prompt("Choose a display name (max 24 characters):", "");
+      if (input !== null) setName(input);
+    }
     unlockGame();
   } catch (err) {
     gateStatus.textContent = "Connection cancelled — try again.";
@@ -725,17 +722,6 @@ startPlayBtn.addEventListener("click", () => {
 const hud = document.getElementById("hud");
 const hudToggle = document.getElementById("hudToggle");
 hudToggle.addEventListener("click", () => hud.classList.toggle("collapsed"));
-
-updateNameBtn();
-if (nameBtn) {
-  nameBtn.addEventListener("click", () => {
-    const current = getName();
-    const input = prompt("Set your display name (max 24 characters):", current);
-    if (input === null) return;
-    setName(input);
-    syncPlayerToServer();
-  });
-}
 
 (async function tryAutoConnect() {
   const provider = getProvider();
