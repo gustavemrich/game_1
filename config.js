@@ -8,5 +8,5 @@
 //      Realtime channel to broadcast player positions.
 //
 // If left blank, the game still works fine in single-player mode.
-window.SUPABASE_URL = "";
-window.SUPABASE_ANON_KEY = "";
+window.SUPABASE_URL = "https://dqwmqjgtwrlxetanlijf.supabase.co";
+window.SUPABASE_ANON_KEY = "sb_publishable_XONVMkJ0ExsTaHmmZPYjqQ_BIxKYsmD";
