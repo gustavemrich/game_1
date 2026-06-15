@@ -2,12 +2,13 @@ const TOKEN_KEY = "farmTokenBalance";
 const XP_KEY = "farmXp";
 const WALLET_KEY = "farmWallet";
 const PLAYER_STYLE_KEY = "farmPlayerStyle";
+const USERNAME_KEY = "farmUsername";
 
 const TILE = 32;
-const COLS = 50;
-const ROWS = 30;
-const VIEW_W = 800;
-const VIEW_H = 480;
+const COLS = 70;
+const ROWS = 45;
+const VIEW_W = 960;
+const VIEW_H = 600;
 
 const canvas = document.getElementById("game");
 const DPR = window.devicePixelRatio || 1;
@@ -28,6 +29,13 @@ const leaderboardListEl = document.getElementById("leaderboardList");
 const startScreen = document.getElementById("startScreen");
 const startPlayBtn = document.getElementById("startPlayBtn");
 const startOnlineCountEl = document.getElementById("startOnlineCount");
+const onlinePlayersListEl = document.getElementById("onlinePlayersList");
+const usernamePill = document.getElementById("usernamePill");
+const usernameDisplayEl = document.getElementById("usernameDisplay");
+const usernameGate = document.getElementById("usernameGate");
+const usernameInput = document.getElementById("usernameInput");
+const usernameSaveBtn = document.getElementById("usernameSaveBtn");
+const usernameStatus = document.getElementById("usernameStatus");
 
 const otherPlayers = {};
 
@@ -135,12 +143,12 @@ function paintBlob(cx, cy, radius, type) {
 }
 
 // Ponds
-for (let i = 0; i < 6; i++) {
+for (let i = 0; i < 12; i++) {
   paintBlob(2 + rng() * (COLS - 4), 2 + rng() * (ROWS - 4), 2 + rng() * 2.5, "water");
 }
 
 // Mining patches
-for (let i = 0; i < 5; i++) {
+for (let i = 0; i < 10; i++) {
   paintBlob(2 + rng() * (COLS - 4), 2 + rng() * (ROWS - 4), 2 + rng() * 2.5, "rock");
 }
 
@@ -181,23 +189,23 @@ function scatterOnTerrain(terrainType, count, place) {
 }
 
 // Farmland
-scatterOnTerrain("grass", 22, (c, r) => addNode(c, r, "wheat"));
-scatterOnTerrain("grass", 7, (c, r) => addNode(c, r, "corn"));
-scatterOnTerrain("grass", 2, (c, r) => addNode(c, r, "pumpkin"));
-scatterOnTerrain("grass", 40, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
-scatterOnTerrain("grass", 25, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
+scatterOnTerrain("grass", 46, (c, r) => addNode(c, r, "wheat"));
+scatterOnTerrain("grass", 15, (c, r) => addNode(c, r, "corn"));
+scatterOnTerrain("grass", 4, (c, r) => addNode(c, r, "pumpkin"));
+scatterOnTerrain("grass", 84, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
+scatterOnTerrain("grass", 53, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
 
 // Ponds
-scatterOnTerrain("water", 10, (c, r) => addNode(c, r, "commonFish"));
-scatterOnTerrain("water", 4, (c, r) => addNode(c, r, "bigFish"));
-scatterOnTerrain("water", 2, (c, r) => addNode(c, r, "legendaryFish"));
-scatterOnTerrain("water", 8, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
+scatterOnTerrain("water", 21, (c, r) => addNode(c, r, "commonFish"));
+scatterOnTerrain("water", 8, (c, r) => addNode(c, r, "bigFish"));
+scatterOnTerrain("water", 4, (c, r) => addNode(c, r, "legendaryFish"));
+scatterOnTerrain("water", 17, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
 
 // Mining patches
-scatterOnTerrain("rock", 10, (c, r) => addNode(c, r, "copper"));
-scatterOnTerrain("rock", 4, (c, r) => addNode(c, r, "silver"));
-scatterOnTerrain("rock", 2, (c, r) => addNode(c, r, "gold"));
-scatterOnTerrain("rock", 15, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
+scatterOnTerrain("rock", 21, (c, r) => addNode(c, r, "copper"));
+scatterOnTerrain("rock", 8, (c, r) => addNode(c, r, "silver"));
+scatterOnTerrain("rock", 4, (c, r) => addNode(c, r, "gold"));
+scatterOnTerrain("rock", 32, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
 
 // --- Player ---
 const player = {
@@ -227,9 +235,26 @@ const sessionId = Math.random().toString(36).slice(2, 10);
 
 let wallet = localStorage.getItem(WALLET_KEY) || null;
 let walletConnected = false;
+let username = localStorage.getItem(USERNAME_KEY) || null;
 
 function shortWallet(addr) {
   return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+}
+
+function playerLabel() {
+  if (username) return username;
+  if (wallet) return shortWallet(wallet);
+  return "anon";
+}
+
+function setUsername(name) {
+  username = name;
+  localStorage.setItem(USERNAME_KEY, name);
+  usernameDisplayEl.textContent = name;
+}
+
+function updateUsernamePill() {
+  usernameDisplayEl.textContent = username || "Set name";
 }
 
 function hatForLevel(level) {
@@ -474,7 +499,7 @@ function draw() {
   const selfTool = activeNode ? toolForType(activeNode.type) : null;
   const selfGathering = !!(activeNode && activeNode.gathering);
 
-  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), wallet ? shortWallet(wallet) : "you", selfTool, selfGathering);
+  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), walletConnected ? playerLabel() : "you", selfTool, selfGathering);
 
   for (const ft of floatingTexts) {
     const elapsed = now - ft.start;
@@ -604,6 +629,10 @@ function getProvider() {
 function unlockGame() {
   walletConnected = true;
   walletGate.classList.add("hidden");
+  updateUsernamePill();
+  if (!username) {
+    usernameGate.classList.remove("hidden");
+  }
   loadPlayerFromServer();
 }
 
@@ -628,6 +657,35 @@ gateConnectBtn.addEventListener("click", connectWallet);
 
 startPlayBtn.addEventListener("click", () => {
   startScreen.classList.add("hidden");
+});
+
+function saveUsername() {
+  const value = usernameInput.value.trim();
+  if (value.length < 3 || value.length > 16) {
+    usernameStatus.textContent = "Username must be 3-16 characters.";
+    return;
+  }
+  if (!/^[a-zA-Z0-9_ ]+$/.test(value)) {
+    usernameStatus.textContent = "Letters, numbers, spaces and _ only.";
+    return;
+  }
+  setUsername(value);
+  usernameStatus.textContent = "";
+  usernameGate.classList.add("hidden");
+  syncPlayerToServer();
+  refreshLeaderboard();
+}
+
+usernameSaveBtn.addEventListener("click", saveUsername);
+usernameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveUsername();
+});
+
+usernamePill.addEventListener("click", () => {
+  if (!walletConnected) return;
+  usernameInput.value = username || "";
+  usernameStatus.textContent = "";
+  usernameGate.classList.remove("hidden");
 });
 
 (async function tryAutoConnect() {
@@ -659,8 +717,40 @@ function updateOnlineCount() {
   const label = `${count} player${count === 1 ? "" : "s"}`;
   onlineCountEl.textContent = label;
   startOnlineCountEl.textContent = `${label} online`;
+  renderOnlinePlayers();
 }
 setInterval(updateOnlineCount, 1000);
+
+function renderOnlinePlayers() {
+  if (!onlinePlayersListEl) return;
+  const now = Date.now();
+  const cutoff = now - 8000;
+
+  const players = [];
+  if (walletConnected) {
+    players.push({ emoji: playerStyle.emoji, label: playerLabel(), level: levelForXp(getXp()), isSelf: true });
+  }
+  for (const id in otherPlayers) {
+    const p = otherPlayers[id];
+    if (p.ts < cutoff) continue;
+    players.push({ emoji: p.emoji, label: p.label || "anon", level: p.level || 1, isSelf: false });
+  }
+
+  if (!players.length) {
+    onlinePlayersListEl.innerHTML = '<li class="leaderboard-empty">No one online right now.</li>';
+    return;
+  }
+
+  players.sort((a, b) => b.level - a.level);
+
+  onlinePlayersListEl.innerHTML = players
+    .map((p) => `<li class="${p.isSelf ? "self" : ""}">
+      <span class="player-emoji">${p.emoji}</span>
+      <span class="wallet">${p.label}${p.isSelf ? " (you)" : ""}</span>
+      <span class="level">Lv.${p.level}</span>
+    </li>`)
+    .join("");
+}
 
 if (supabaseClient) {
   const channel = supabaseClient.channel("farm-world", {
@@ -705,7 +795,7 @@ if (supabaseClient) {
             emoji: playerStyle.emoji,
             color: playerStyle.color,
             level: levelForXp(getXp()),
-            label: wallet ? shortWallet(wallet) : "anon",
+            label: playerLabel(),
             tool: activeNode ? toolForType(activeNode.type) : null,
             gathering: !!(activeNode && activeNode.gathering),
           },
@@ -727,6 +817,10 @@ async function loadPlayerFromServer() {
       const serverBalance = parseFloat(data.balance) || 0;
       if (serverXp > getXp()) setXp(serverXp);
       if (serverBalance > getBalance()) setBalance(serverBalance);
+      if (!username && data.username) {
+        setUsername(data.username);
+        usernameGate.classList.add("hidden");
+      }
     }
   } catch (err) {
     console.warn("Could not load player from Supabase", err);
@@ -743,6 +837,7 @@ async function syncPlayerToServer() {
   try {
     await supabaseClient.from("players").upsert({
       wallet,
+      username,
       level,
       xp,
       balance,
@@ -761,7 +856,7 @@ async function refreshLeaderboard() {
   try {
     const { data, error } = await supabaseClient
       .from("players")
-      .select("wallet, level, xp")
+      .select("wallet, username, level, xp")
       .order("xp", { ascending: false })
       .limit(10);
     if (error) throw error;
@@ -779,9 +874,10 @@ function renderLeaderboard(rows) {
   leaderboardListEl.innerHTML = rows
     .map((row, i) => {
       const isSelf = wallet && row.wallet === wallet;
+      const name = row.username || shortWallet(row.wallet);
       return `<li class="${isSelf ? "self" : ""}">
         <span class="rank">#${i + 1}</span>
-        <span class="wallet">${shortWallet(row.wallet)}</span>
+        <span class="wallet">${name}</span>
         <span class="level">Lv.${row.level}</span>
         <span class="xp">${Math.floor(row.xp)} XP</span>
       </li>`;

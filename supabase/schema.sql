@@ -11,11 +11,14 @@
 
 create table if not exists players (
   wallet text primary key,
+  username text,
   level integer not null default 1,
   xp numeric not null default 0,
   balance numeric not null default 0,
   updated_at timestamptz not null default now()
 );
+
+alter table players add column if not exists username text;
 
 alter table players enable row level security;
 

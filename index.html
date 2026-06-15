@@ -34,6 +34,10 @@
     <span class="balance-label">Online</span>
     <span id="onlineCount">1 player</span>
   </div>
+  <div class="balance-pill" id="usernamePill" title="Click to set your username">
+    <span class="balance-label">Player</span>
+    <span id="usernameDisplay">Set name</span>
+  </div>
   <div class="balance-pill">
     <span class="balance-label">Level</span>
     <span id="levelDisplay">Lv. 1</span>
@@ -59,6 +63,15 @@
           <p>Your wallet address is your $FARM account — it's how your level, XP, and leaderboard spot are saved.</p>
           <button class="btn-primary" id="gateConnectBtn">Connect Wallet</button>
           <p class="note" id="gateStatus"></p>
+        </div>
+      </div>
+      <div class="wallet-gate hidden" id="usernameGate">
+        <div class="wallet-gate-card">
+          <h2>Choose a username</h2>
+          <p>This name is linked to your connected wallet and shown to other players and on the leaderboard.</p>
+          <input type="text" id="usernameInput" maxlength="16" placeholder="e.g. FarmerJoe">
+          <button class="btn-primary" id="usernameSaveBtn">Save</button>
+          <p class="note" id="usernameStatus"></p>
         </div>
       </div>
     </div>
@@ -87,6 +100,13 @@
     <ol class="leaderboard-list" id="leaderboardList">
       <li class="leaderboard-empty">Connect your wallet and start gathering to appear here.</li>
     </ol>
+  </section>
+
+  <section class="leaderboard">
+    <h2>👥 Online Now</h2>
+    <ul class="leaderboard-list" id="onlinePlayersList">
+      <li class="leaderboard-empty">Connect your wallet to see who's online.</li>
+    </ul>
   </section>
 </main>
 
