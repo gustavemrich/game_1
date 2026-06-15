@@ -37,6 +37,8 @@ const leaderboardListEl = document.getElementById("leaderboardList");
 const startScreen = document.getElementById("startScreen");
 const startPlayBtn = document.getElementById("startPlayBtn");
 const startOnlineCountEl = document.getElementById("startOnlineCount");
+const chatMessagesEl = document.getElementById("chatMessages");
+const chatInputEl = document.getElementById("chatInput");
 
 const otherPlayers = {};
 
@@ -257,6 +259,7 @@ function toolForType(type) {
 // --- Input ---
 const keys = {};
 window.addEventListener("keydown", (e) => {
+  if (e.target === chatInputEl) return;
   const k = e.key.toLowerCase();
   keys[k] = true;
   if (k === " " || k === "e") {
@@ -265,6 +268,7 @@ window.addEventListener("keydown", (e) => {
   }
 });
 window.addEventListener("keyup", (e) => {
+  if (e.target === chatInputEl) return;
   keys[e.key.toLowerCase()] = false;
 });
 
@@ -296,18 +300,25 @@ function tryGather() {
 function update() {
   if (!walletConnected) return;
 
+  const isGathering = nodes.some((n) => n.gathering);
+
   let dx = 0;
   let dy = 0;
-  if (keys["arrowup"] || keys["w"]) dy -= 1;
-  if (keys["arrowdown"] || keys["s"]) dy += 1;
-  if (keys["arrowleft"] || keys["a"]) dx -= 1;
-  if (keys["arrowright"] || keys["d"]) dx += 1;
+  if (!isGathering) {
+    if (keys["arrowup"] || keys["w"]) dy -= 1;
+    if (keys["arrowdown"] || keys["s"]) dy += 1;
+    if (keys["arrowleft"] || keys["a"]) dx -= 1;
+    if (keys["arrowright"] || keys["d"]) dx += 1;
+  }
 
   // Smoothly accelerate/decelerate towards the target direction so
   // movement feels less twitchy and abrupt key taps don't snap the player.
   const accel = 0.45;
   const friction = 0.78;
-  if (dx || dy) {
+  if (isGathering) {
+    player.vx = 0;
+    player.vy = 0;
+  } else if (dx || dy) {
     const len = Math.hypot(dx, dy);
     player.vx += (dx / len) * player.speed * accel;
     player.vy += (dy / len) * player.speed * accel;
@@ -675,10 +686,48 @@ function updateOnlineCount() {
 }
 setInterval(updateOnlineCount, 1000);
 
+let chatChannel = null;
+
+function appendChatMessage(label, text) {
+  const row = document.createElement("div");
+  row.className = "chat-message";
+  const author = document.createElement("span");
+  author.className = "chat-author";
+  author.textContent = label + ":";
+  const body = document.createElement("span");
+  body.className = "chat-text";
+  body.textContent = text;
+  row.appendChild(author);
+  row.appendChild(body);
+  chatMessagesEl.appendChild(row);
+  while (chatMessagesEl.children.length > 50) {
+    chatMessagesEl.removeChild(chatMessagesEl.firstChild);
+  }
+  chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+}
+
+chatInputEl.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const text = chatInputEl.value.trim();
+  chatInputEl.value = "";
+  if (!text) return;
+  const label = wallet ? shortWallet(wallet) : "anon";
+  appendChatMessage(label, text);
+  if (chatChannel) {
+    chatChannel.send({
+      type: "broadcast",
+      event: "chat",
+      payload: { id: sessionId, label, text },
+    });
+  }
+});
+
 if (supabaseClient) {
   const channel = supabaseClient.channel("farm-world", {
     config: { broadcast: { self: false } },
   });
+  chatChannel = channel;
 
   channel.on("broadcast", { event: "move" }, ({ payload }) => {
     if (!payload || payload.id === sessionId) return;
@@ -694,6 +743,11 @@ if (supabaseClient) {
       ts: Date.now(),
     };
     updateOnlineCount();
+  });
+
+  channel.on("broadcast", { event: "chat" }, ({ payload }) => {
+    if (!payload || payload.id === sessionId) return;
+    appendChatMessage(payload.label || "anon", payload.text || "");
   });
 
   channel.subscribe((status) => {
