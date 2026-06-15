@@ -16,6 +16,10 @@
     <a href="/" class="active">Play</a>
     <a href="/swap">Swap</a>
   </nav>
+  <div class="balance-pill online-pill">
+    <span class="balance-label">Online</span>
+    <span id="onlineCount">1 player</span>
+  </div>
   <div class="balance-pill">
     <span class="balance-label">Balance</span>
     <span id="balance">0.00 $FARM</span>
@@ -32,11 +36,20 @@
     <canvas id="game"></canvas>
     <div class="hud">
       <div class="hud-row"><strong>Move:</strong> Arrow keys / WASD</div>
-      <div class="hud-row"><strong>Gather:</strong> Press E or Space near a 🌾 / 🐟 / ⛏️ spot</div>
+      <div class="hud-row"><strong>Gather:</strong> Press E or Space near a resource spot</div>
       <div class="hud-row legend">
-        <span><span class="dot grass"></span> Fields (crops)</span>
-        <span><span class="dot water"></span> Lake (fish)</span>
-        <span><span class="dot rock"></span> Mountains (ore)</span>
+        <span><span class="dot grass"></span> Fields: 🌾 wheat, 🌽 corn, 🎃 pumpkin (rare)</span>
+      </div>
+      <div class="hud-row legend">
+        <span><span class="dot water"></span> Lake: 🐟 common, 🐡 big fish, 🦈 legendary (rare)</span>
+      </div>
+      <div class="hud-row legend">
+        <span><span class="dot rock"></span> Mountains: ⛏️ copper, 🔩 silver, 💎 gold (rare, slow)</span>
+      </div>
+      <div class="hud-row legend">
+        <span><span class="rarity-dot" style="background: rgba(255,255,255,0.3)"></span> Common</span>
+        <span><span class="rarity-dot" style="background: #60a5fa"></span> Uncommon</span>
+        <span><span class="rarity-dot" style="background: #facc15"></span> Rare (longer, bigger reward)</span>
       </div>
     </div>
   </section>
@@ -46,6 +59,8 @@
   <p>$FARM is a community memecoin project. In-game balances are stored locally in your browser and are not yet redeemable on-chain.</p>
 </footer>
 
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
