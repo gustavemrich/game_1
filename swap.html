@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>$FARM — Swap</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🌾</span>
+    <span class="brand-name">$FARM</span>
+  </div>
+  <nav class="nav">
+    <a href="/">Play</a>
+    <a href="/swap" class="active">Swap</a>
+  </nav>
+  <div class="balance-pill">
+    <span class="balance-label">In-game balance</span>
+    <span id="balance">0.00 $FARM</span>
+  </div>
+</header>
+
+<main>
+  <div class="swap-card">
+    <h2>Swap $FARM</h2>
+
+    <div class="wallet-row">
+      <div class="wallet-info" id="walletInfo">Wallet not connected</div>
+      <button class="btn-secondary" id="connectBtn">Connect Wallet</button>
+    </div>
+
+    <div class="balance-grid">
+      <div class="balance-box">
+        <div class="label">$FARM earned</div>
+        <div class="value" id="farmBalance">0.00</div>
+      </div>
+      <div class="balance-box">
+        <div class="label">SOL balance</div>
+        <div class="value" id="solBalance">-</div>
+      </div>
+    </div>
+
+    <form class="swap-form" id="swapForm">
+      <div class="field">
+        <label for="fromAmount">From</label>
+        <input type="number" id="fromAmount" min="0" step="0.01" placeholder="0.00" />
+        <small style="color: var(--muted)">$FARM (earned in-game)</small>
+      </div>
+      <div class="swap-arrow">↓</div>
+      <div class="field">
+        <label for="toAmount">To (estimated)</label>
+        <input type="text" id="toAmount" placeholder="0.00" readonly />
+        <small style="color: var(--muted)">$FARM (Solana, pre-launch)</small>
+      </div>
+      <button type="submit" class="btn-primary" id="swapBtn">Swap (Coming Soon)</button>
+    </form>
+
+    <p class="note">
+      $FARM hasn't launched on Solana yet. Your in-game balance is saved in this browser
+      and will be eligible for the token swap once $FARM goes live. Connect your wallet now
+      so you're ready when swaps open.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <p>$FARM is a community memecoin project. Nothing here is financial advice. No tokens have value until launch.</p>
+</footer>
+
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script src="swap.js"></script>
+</body>
+</html>
