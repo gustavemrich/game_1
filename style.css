@@ -351,6 +351,12 @@ footer {
   border-top: 1px solid rgba(255,255,255,0.06);
 }
 
+.contract-address {
+  margin-top: 6px;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+
 /* Swap page */
 .swap-card {
   background: var(--panel);
