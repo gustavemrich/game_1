@@ -10,9 +10,13 @@ const VIEW_W = 800;
 const VIEW_H = 480;
 
 const canvas = document.getElementById("game");
-canvas.width = VIEW_W;
-canvas.height = VIEW_H;
+const DPR = window.devicePixelRatio || 1;
+canvas.width = VIEW_W * DPR;
+canvas.height = VIEW_H * DPR;
+canvas.style.width = `${VIEW_W}px`;
+canvas.style.height = `${VIEW_H}px`;
 const ctx = canvas.getContext("2d");
+ctx.scale(DPR, DPR);
 
 const balanceEl = document.getElementById("balance");
 const onlineCountEl = document.getElementById("onlineCount");
@@ -48,22 +52,21 @@ function setXp(value) {
 }
 
 // --- World ---
-function zoneAt(col) {
-  if (col < 17) return "grass";
-  if (col < 34) return "water";
-  return "rock";
-}
+let terrain = [];
 
 function terrainColor(col, row, now) {
-  const zone = zoneAt(col);
-  if (zone === "water") {
+  const t = terrain[row][col];
+  if (t === "water") {
     const wave = Math.sin(col * 0.6 + row * 0.4 + now / 500);
-    return `hsl(212, 65%, ${38 + wave * 6}%)`;
+    return `hsl(205, 60%, ${40 + wave * 6}%)`;
   }
-  if (zone === "grass") {
-    return (col + row) % 2 === 0 ? "#2e7d32" : "#357a38";
+  if (t === "sand") {
+    return (col + row) % 2 === 0 ? "#d9c08c" : "#e0c896";
   }
-  return (col + row) % 2 === 0 ? "#5d4037" : "#6b4c3f";
+  if (t === "rock") {
+    return (col + row) % 2 === 0 ? "#5d4037" : "#6b4c3f";
+  }
+  return (col + row) % 2 === 0 ? "#3a8d3f" : "#418f46";
 }
 
 const RARITY_COLORS = {
@@ -107,39 +110,91 @@ function addNode(col, row, type) {
 
 const decorations = [];
 
-function scatter(colMin, colMax, rowMin, rowMax, count, place) {
-  let placed = 0;
-  let attempts = 0;
-  while (placed < count && attempts < count * 50) {
-    attempts++;
-    const c = colMin + Math.floor(rng() * (colMax - colMin));
-    const r = rowMin + Math.floor(rng() * (rowMax - rowMin));
-    const key = `${c},${r}`;
-    if (occupied.has(key)) continue;
-    occupied.add(key);
-    place(c, r);
-    placed++;
+// Mixed landscape: mostly green farmland, with a handful of ponds and
+// rocky mining patches scattered across the map.
+for (let r = 0; r < ROWS; r++) {
+  terrain.push(new Array(COLS).fill("grass"));
+}
+
+function paintBlob(cx, cy, radius, type) {
+  const minR = Math.max(0, Math.floor(cy - radius));
+  const maxR = Math.min(ROWS - 1, Math.ceil(cy + radius));
+  const minC = Math.max(0, Math.floor(cx - radius));
+  const maxC = Math.min(COLS - 1, Math.ceil(cx + radius));
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const dx = c - cx;
+      const dy = r - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy) + (rng() - 0.5) * 1.6;
+      if (dist <= radius) terrain[r][c] = type;
+    }
   }
 }
 
-// Fields (cols 0-16)
-scatter(0, 17, 0, ROWS, 14, (c, r) => addNode(c, r, "wheat"));
-scatter(0, 17, 0, ROWS, 5, (c, r) => addNode(c, r, "corn"));
-scatter(0, 17, 0, ROWS, 2, (c, r) => addNode(c, r, "pumpkin"));
-scatter(0, 17, 0, ROWS, 30, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
-scatter(0, 17, 0, ROWS, 20, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
+// Ponds
+for (let i = 0; i < 6; i++) {
+  paintBlob(2 + rng() * (COLS - 4), 2 + rng() * (ROWS - 4), 2 + rng() * 2.5, "water");
+}
 
-// Lake (cols 17-33)
-scatter(17, 34, 0, ROWS, 14, (c, r) => addNode(c, r, "commonFish"));
-scatter(17, 34, 0, ROWS, 5, (c, r) => addNode(c, r, "bigFish"));
-scatter(17, 34, 0, ROWS, 2, (c, r) => addNode(c, r, "legendaryFish"));
-scatter(17, 34, 0, ROWS, 15, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
+// Mining patches
+for (let i = 0; i < 5; i++) {
+  paintBlob(2 + rng() * (COLS - 4), 2 + rng() * (ROWS - 4), 2 + rng() * 2.5, "rock");
+}
 
-// Mountains (cols 34-49)
-scatter(34, 50, 0, ROWS, 14, (c, r) => addNode(c, r, "copper"));
-scatter(34, 50, 0, ROWS, 5, (c, r) => addNode(c, r, "silver"));
-scatter(34, 50, 0, ROWS, 2, (c, r) => addNode(c, r, "gold"));
-scatter(34, 50, 0, ROWS, 25, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
+// Sandy shoreline around ponds
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    if (terrain[r][c] !== "grass") continue;
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (const [dx, dy] of dirs) {
+      const nr = r + dy;
+      const nc = c + dx;
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+      if (terrain[nr][nc] === "water") {
+        terrain[r][c] = "sand";
+        break;
+      }
+    }
+  }
+}
+
+function scatterOnTerrain(terrainType, count, place) {
+  const candidates = [];
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const key = `${c},${r}`;
+      if (terrain[r][c] === terrainType && !occupied.has(key)) candidates.push([c, r]);
+    }
+  }
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+  }
+  for (let i = 0; i < Math.min(count, candidates.length); i++) {
+    const [c, r] = candidates[i];
+    occupied.add(`${c},${r}`);
+    place(c, r);
+  }
+}
+
+// Farmland
+scatterOnTerrain("grass", 22, (c, r) => addNode(c, r, "wheat"));
+scatterOnTerrain("grass", 7, (c, r) => addNode(c, r, "corn"));
+scatterOnTerrain("grass", 2, (c, r) => addNode(c, r, "pumpkin"));
+scatterOnTerrain("grass", 40, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
+scatterOnTerrain("grass", 25, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
+
+// Ponds
+scatterOnTerrain("water", 10, (c, r) => addNode(c, r, "commonFish"));
+scatterOnTerrain("water", 4, (c, r) => addNode(c, r, "bigFish"));
+scatterOnTerrain("water", 2, (c, r) => addNode(c, r, "legendaryFish"));
+scatterOnTerrain("water", 8, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
+
+// Mining patches
+scatterOnTerrain("rock", 10, (c, r) => addNode(c, r, "copper"));
+scatterOnTerrain("rock", 4, (c, r) => addNode(c, r, "silver"));
+scatterOnTerrain("rock", 2, (c, r) => addNode(c, r, "gold"));
+scatterOnTerrain("rock", 15, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
 
 // --- Player ---
 const player = {
@@ -176,6 +231,12 @@ function hatForLevel(level) {
   if (level >= 20) return "👑";
   if (level >= 10) return "🎩";
   if (level >= 5) return "🧢";
+  return null;
+}
+
+function toolForType(type) {
+  if (type === "copper" || type === "silver" || type === "gold") return "⛏️";
+  if (type === "commonFish" || type === "bigFish" || type === "legendaryFish") return "🎣";
   return null;
 }
 
@@ -294,6 +355,12 @@ function draw() {
     for (let c = startCol; c < endCol; c++) {
       ctx.fillStyle = terrainColor(c, r, now);
       ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+
+      if (terrain[r][c] === "grass" && (c * 31 + r * 17) % 7 === 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.07)";
+        ctx.fillRect(c * TILE + 6, r * TILE + 9, 3, 9);
+        ctx.fillRect(c * TILE + 18, r * TILE + 15, 3, 9);
+      }
     }
   }
 
@@ -369,10 +436,20 @@ function draw() {
   for (const id in otherPlayers) {
     const p = otherPlayers[id];
     if (p.ts < cutoff) continue;
-    drawCharacter(p.x, p.y, { emoji: p.emoji, color: p.color }, p.level || 1, p.label || "anon");
+    drawCharacter(p.x, p.y, { emoji: p.emoji, color: p.color }, p.level || 1, p.label || "anon", p.tool || null, !!p.gathering);
   }
 
-  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), wallet ? shortWallet(wallet) : "you");
+  let activeNode = active;
+  for (const node of nodes) {
+    if (node.gathering) {
+      activeNode = node;
+      break;
+    }
+  }
+  const selfTool = activeNode ? toolForType(activeNode.type) : null;
+  const selfGathering = !!(activeNode && activeNode.gathering);
+
+  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), wallet ? shortWallet(wallet) : "you", selfTool, selfGathering);
 
   for (const ft of floatingTexts) {
     const elapsed = now - ft.start;
@@ -388,7 +465,7 @@ function draw() {
   ctx.restore();
 }
 
-function drawCharacter(x, y, style, level, label) {
+function drawCharacter(x, y, style, level, label, tool, gathering) {
   const r = player.size / 2;
 
   // shadow
@@ -433,6 +510,19 @@ function drawCharacter(x, y, style, level, label) {
   ctx.fillRect(x - w / 2, tagY - 7, w, 14);
   ctx.fillStyle = "#fff";
   ctx.fillText(text, x, tagY);
+
+  // tool held in hand
+  if (tool) {
+    ctx.save();
+    const angle = gathering ? -0.6 + Math.sin(Date.now() / 90) * 0.5 : -0.35;
+    ctx.translate(x + r + 6, y + r / 2);
+    ctx.rotate(angle);
+    ctx.font = "18px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(tool, 0, 0);
+    ctx.restore();
+  }
 }
 
 function loop() {
@@ -518,6 +608,8 @@ if (supabaseClient) {
       color: payload.color,
       level: payload.level,
       label: payload.label,
+      tool: payload.tool,
+      gathering: payload.gathering,
       ts: Date.now(),
     };
     updateOnlineCount();
@@ -527,6 +619,13 @@ if (supabaseClient) {
     if (status === "SUBSCRIBED") {
       onlineCountEl.textContent = "1 player";
       setInterval(() => {
+        let activeNode = nearbyNode();
+        for (const node of nodes) {
+          if (node.gathering) {
+            activeNode = node;
+            break;
+          }
+        }
         channel.send({
           type: "broadcast",
           event: "move",
@@ -538,6 +637,8 @@ if (supabaseClient) {
             color: playerStyle.color,
             level: levelForXp(getXp()),
             label: wallet ? shortWallet(wallet) : "anon",
+            tool: activeNode ? toolForType(activeNode.type) : null,
+            gathering: !!(activeNode && activeNode.gathering),
           },
         });
       }, 120);

@@ -136,7 +136,6 @@ main {
   border: 2px solid rgba(255,255,255,0.08);
   border-radius: 8px;
   max-width: 100%;
-  image-rendering: pixelated;
 }
 
 .hud {
