@@ -275,7 +275,7 @@ const player = {
   x: 8 * TILE + TILE / 2,
   y: 15 * TILE + TILE / 2,
   size: 24,
-  speed: 2.2,
+  speed: 1.8,
   vx: 0,
   vy: 0,
 };
@@ -594,7 +594,7 @@ function draw() {
   for (const id in otherPlayers) {
     const p = otherPlayers[id];
     if (p.ts < cutoff) continue;
-    drawCharacter(p.x, p.y, { emoji: p.emoji, color: p.color }, p.level || 1, p.label || "anon", p.tool || null, !!p.gathering);
+    drawCharacter(p.x, p.y, { emoji: p.emoji, color: p.color }, p.level || 1, p.label || "anon", p.tool || null, !!p.gathering, !!p.walking);
   }
 
   let activeNode = active;
@@ -606,8 +606,9 @@ function draw() {
   }
   const selfTool = activeNode ? toolForType(activeNode.type) : null;
   const selfGathering = !!(activeNode && activeNode.gathering);
+  const selfWalking = !!(player.vx || player.vy);
 
-  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), displayName(wallet ? shortWallet(wallet) : "you"), selfTool, selfGathering);
+  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), displayName(wallet ? shortWallet(wallet) : "you"), selfTool, selfGathering, selfWalking);
 
   for (const ft of floatingTexts) {
     const elapsed = now - ft.start;
@@ -623,13 +624,17 @@ function draw() {
   ctx.restore();
 }
 
-function drawCharacter(x, y, style, level, label, tool, gathering) {
+function drawCharacter(x, y, style, level, label, tool, gathering, walking) {
   const r = player.size / 2;
-  const bob = gathering ? Math.sin(Date.now() / 100) * 1.5 : 0;
+  const t = Date.now();
+  const walkPhase = t / 150;
+  const bob = gathering ? Math.sin(t / 100) * 1.5
+              : walking ? Math.abs(Math.sin(walkPhase)) * 1.8 : 0;
 
-  // shadow
+  // shadow — squish slightly while walking
   ctx.beginPath();
-  ctx.ellipse(x, y + r + 4, r * 0.95, r / 2.8, 0, 0, Math.PI * 2);
+  const shadowScaleX = walking && !gathering ? 0.88 + Math.abs(Math.sin(walkPhase)) * 0.12 : 0.95;
+  ctx.ellipse(x, y + r + 4, r * shadowScaleX, r / 2.8, 0, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.fill();
 
@@ -641,19 +646,21 @@ function drawCharacter(x, y, style, level, label, tool, gathering) {
   const headCY = bodyTop - headR * 0.75;
   const topOfHead = headCY - headR;
 
-  // legs
-  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  // leg swing — alternate up/down when walking
+  const legSwing = walking && !gathering ? Math.sin(walkPhase) * 3.5 : 0;
   const legW = bodyW * 0.32;
-  ctx.fillRect(x - bodyW / 2 + 1, bodyBottom - 2, legW, r * 0.8);
-  ctx.fillRect(x + bodyW / 2 - legW - 1, bodyBottom - 2, legW, r * 0.8);
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(x - bodyW / 2 + 1, bodyBottom - 2 + legSwing, legW, r * 0.8);
+  ctx.fillRect(x + bodyW / 2 - legW - 1, bodyBottom - 2 - legSwing, legW, r * 0.8);
 
-  // arms
+  // arm swing — opposite to legs
+  const armSwing = walking && !gathering ? -Math.sin(walkPhase) * 3 : 0;
   ctx.fillStyle = style.color;
   ctx.beginPath();
-  ctx.ellipse(x - bodyW / 2, bodyTop + bodyH * 0.35, r * 0.28, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(x - bodyW / 2, bodyTop + bodyH * 0.35 + armSwing, r * 0.28, r * 0.4, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(x + bodyW / 2, bodyTop + bodyH * 0.35, r * 0.28, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + bodyW / 2, bodyTop + bodyH * 0.35 - armSwing, r * 0.28, r * 0.4, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // torso with glossy gradient
@@ -857,6 +864,7 @@ if (supabaseClient) {
       label: payload.label,
       tool: payload.tool,
       gathering: payload.gathering,
+      walking: payload.walking,
       ts: Date.now(),
     };
     updateOnlineCount();
@@ -892,6 +900,7 @@ if (supabaseClient) {
             label: displayName(wallet ? shortWallet(wallet) : "anon"),
             tool: activeNode ? toolForType(activeNode.type) : null,
             gathering: !!(activeNode && activeNode.gathering),
+            walking: !!(player.vx || player.vy),
           },
         });
       }, 120);
