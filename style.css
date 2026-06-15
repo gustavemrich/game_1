@@ -90,6 +90,16 @@ a {
   border-bottom-color: var(--gold);
 }
 
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  border-bottom-color: transparent !important;
+}
+
+.social-link:hover {
+  color: var(--gold) !important;
+}
+
 .balance-pill {
   display: flex;
   flex-direction: column;
