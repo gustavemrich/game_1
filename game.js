@@ -1,21 +1,30 @@
 const TOKEN_KEY = "farmTokenBalance";
-const PLAYER_ID_KEY = "farmPlayerId";
+const XP_KEY = "farmXp";
+const WALLET_KEY = "farmWallet";
 const PLAYER_STYLE_KEY = "farmPlayerStyle";
 
 const TILE = 32;
-const COLS = 25;
-const ROWS = 15;
+const COLS = 50;
+const ROWS = 30;
+const VIEW_W = 800;
+const VIEW_H = 480;
 
 const canvas = document.getElementById("game");
-canvas.width = COLS * TILE;
-canvas.height = ROWS * TILE;
+canvas.width = VIEW_W;
+canvas.height = VIEW_H;
 const ctx = canvas.getContext("2d");
 
 const balanceEl = document.getElementById("balance");
 const onlineCountEl = document.getElementById("onlineCount");
+const levelDisplayEl = document.getElementById("levelDisplay");
+const walletGate = document.getElementById("walletGate");
+const gateConnectBtn = document.getElementById("gateConnectBtn");
+const gateStatus = document.getElementById("gateStatus");
+const leaderboardListEl = document.getElementById("leaderboardList");
 
 const otherPlayers = {};
 
+// --- Balance & XP / leveling ---
 function getBalance() {
   return parseFloat(localStorage.getItem(TOKEN_KEY) || "0");
 }
@@ -25,17 +34,36 @@ function setBalance(value) {
   balanceEl.textContent = `${value.toFixed(2)} $FARM`;
 }
 
-// --- World ---
-const ZONE_COLORS = {
-  grass: "#2e7d32",
-  water: "#1565c0",
-  rock: "#5d4037",
-};
+function levelForXp(xp) {
+  return Math.floor(xp / 100) + 1;
+}
 
+function getXp() {
+  return parseFloat(localStorage.getItem(XP_KEY) || "0");
+}
+
+function setXp(value) {
+  localStorage.setItem(XP_KEY, value.toFixed(2));
+  levelDisplayEl.textContent = `Lv. ${levelForXp(value)}`;
+}
+
+// --- World ---
 function zoneAt(col) {
-  if (col < 8) return "grass";
-  if (col < 17) return "water";
+  if (col < 17) return "grass";
+  if (col < 34) return "water";
   return "rock";
+}
+
+function terrainColor(col, row, now) {
+  const zone = zoneAt(col);
+  if (zone === "water") {
+    const wave = Math.sin(col * 0.6 + row * 0.4 + now / 500);
+    return `hsl(212, 65%, ${38 + wave * 6}%)`;
+  }
+  if (zone === "grass") {
+    return (col + row) % 2 === 0 ? "#2e7d32" : "#357a38";
+  }
+  return (col + row) % 2 === 0 ? "#5d4037" : "#6b4c3f";
 }
 
 const RARITY_COLORS = {
@@ -46,45 +74,79 @@ const RARITY_COLORS = {
 
 // --- Resource tiers ---
 const RESOURCE_TYPES = {
-  wheat: { icon: "🌾", zone: "grass", gatherTime: 1000, cooldown: 8000, reward: [1, 3], fail: 0, rarity: "common" },
-  corn: { icon: "🌽", zone: "grass", gatherTime: 2500, cooldown: 18000, reward: [4, 8], fail: 0, rarity: "uncommon" },
-  pumpkin: { icon: "🎃", zone: "grass", gatherTime: 5000, cooldown: 40000, reward: [10, 18], fail: 0, rarity: "rare" },
+  wheat: { icon: "🌾", gatherTime: 1000, cooldown: 8000, reward: [1, 3], fail: 0, rarity: "common" },
+  corn: { icon: "🌽", gatherTime: 2500, cooldown: 18000, reward: [4, 8], fail: 0, rarity: "uncommon" },
+  pumpkin: { icon: "🎃", gatherTime: 5000, cooldown: 40000, reward: [10, 18], fail: 0, rarity: "rare" },
 
-  commonFish: { icon: "🐟", zone: "water", gatherTime: 1500, cooldown: 12000, reward: [2, 5], fail: 0.25, rarity: "common" },
-  bigFish: { icon: "🐡", zone: "water", gatherTime: 3500, cooldown: 28000, reward: [8, 15], fail: 0.35, rarity: "uncommon" },
-  legendaryFish: { icon: "🦈", zone: "water", gatherTime: 7000, cooldown: 75000, reward: [25, 45], fail: 0.45, rarity: "rare" },
+  commonFish: { icon: "🐟", gatherTime: 1500, cooldown: 12000, reward: [2, 5], fail: 0.25, rarity: "common" },
+  bigFish: { icon: "🐡", gatherTime: 3500, cooldown: 28000, reward: [8, 15], fail: 0.35, rarity: "uncommon" },
+  legendaryFish: { icon: "🦈", gatherTime: 7000, cooldown: 75000, reward: [25, 45], fail: 0.45, rarity: "rare" },
 
-  copper: { icon: "⛏️", zone: "rock", gatherTime: 2000, cooldown: 16000, reward: [3, 7], fail: 0, rarity: "common" },
-  silver: { icon: "🔩", zone: "rock", gatherTime: 4500, cooldown: 38000, reward: [12, 22], fail: 0, rarity: "uncommon" },
-  gold: { icon: "💎", zone: "rock", gatherTime: 9000, cooldown: 100000, reward: [35, 60], fail: 0.2, rarity: "rare" },
+  copper: { icon: "⛏️", gatherTime: 2000, cooldown: 16000, reward: [3, 7], fail: 0, rarity: "common" },
+  silver: { icon: "🔩", gatherTime: 4500, cooldown: 38000, reward: [12, 22], fail: 0, rarity: "uncommon" },
+  gold: { icon: "💎", gatherTime: 9000, cooldown: 100000, reward: [35, 60], fail: 0.2, rarity: "rare" },
 };
+
+// --- Deterministic world layout (same map for every player) ---
+function mulberry32(seed) {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rng = mulberry32(1337);
+const occupied = new Set();
 
 const nodes = [];
 function addNode(col, row, type) {
   nodes.push({ col, row, type, cooldownUntil: 0, gathering: null });
 }
 
-// Fields (cols 0-7)
-[[1, 2], [3, 2], [1, 6], [3, 6], [1, 10], [3, 10]].forEach(([c, r]) => addNode(c, r, "wheat"));
-[[5, 3], [5, 8], [6, 12]].forEach(([c, r]) => addNode(c, r, "corn"));
-addNode(2, 13, "pumpkin");
+const decorations = [];
 
-// Lake (cols 8-16)
-[[9, 2], [12, 2], [15, 2], [9, 7], [12, 7], [15, 7]].forEach(([c, r]) => addNode(c, r, "commonFish"));
-[[10, 11], [14, 11]].forEach(([c, r]) => addNode(c, r, "bigFish"));
-addNode(12, 13, "legendaryFish");
+function scatter(colMin, colMax, rowMin, rowMax, count, place) {
+  let placed = 0;
+  let attempts = 0;
+  while (placed < count && attempts < count * 50) {
+    attempts++;
+    const c = colMin + Math.floor(rng() * (colMax - colMin));
+    const r = rowMin + Math.floor(rng() * (rowMax - rowMin));
+    const key = `${c},${r}`;
+    if (occupied.has(key)) continue;
+    occupied.add(key);
+    place(c, r);
+    placed++;
+  }
+}
 
-// Mountains (cols 17-24)
-[[18, 2], [20, 2], [22, 2], [18, 7], [20, 7], [22, 7]].forEach(([c, r]) => addNode(c, r, "copper"));
-[[19, 11], [23, 11]].forEach(([c, r]) => addNode(c, r, "silver"));
-addNode(21, 13, "gold");
+// Fields (cols 0-16)
+scatter(0, 17, 0, ROWS, 14, (c, r) => addNode(c, r, "wheat"));
+scatter(0, 17, 0, ROWS, 5, (c, r) => addNode(c, r, "corn"));
+scatter(0, 17, 0, ROWS, 2, (c, r) => addNode(c, r, "pumpkin"));
+scatter(0, 17, 0, ROWS, 30, (c, r) => decorations.push({ col: c, row: r, icon: "🌳" }));
+scatter(0, 17, 0, ROWS, 20, (c, r) => decorations.push({ col: c, row: r, icon: "🌿" }));
+
+// Lake (cols 17-33)
+scatter(17, 34, 0, ROWS, 14, (c, r) => addNode(c, r, "commonFish"));
+scatter(17, 34, 0, ROWS, 5, (c, r) => addNode(c, r, "bigFish"));
+scatter(17, 34, 0, ROWS, 2, (c, r) => addNode(c, r, "legendaryFish"));
+scatter(17, 34, 0, ROWS, 15, (c, r) => decorations.push({ col: c, row: r, icon: "🪷" }));
+
+// Mountains (cols 34-49)
+scatter(34, 50, 0, ROWS, 14, (c, r) => addNode(c, r, "copper"));
+scatter(34, 50, 0, ROWS, 5, (c, r) => addNode(c, r, "silver"));
+scatter(34, 50, 0, ROWS, 2, (c, r) => addNode(c, r, "gold"));
+scatter(34, 50, 0, ROWS, 25, (c, r) => decorations.push({ col: c, row: r, icon: "🪨" }));
 
 // --- Player ---
 const player = {
-  x: 12 * TILE + TILE / 2,
-  y: 7 * TILE + TILE / 2,
-  size: 22,
-  speed: 2.6,
+  x: 8 * TILE + TILE / 2,
+  y: 15 * TILE + TILE / 2,
+  size: 24,
+  speed: 2.8,
 };
 
 function loadPlayerStyle() {
@@ -100,17 +162,24 @@ function loadPlayerStyle() {
   return style;
 }
 
-function loadPlayerId() {
-  let id = localStorage.getItem(PLAYER_ID_KEY);
-  if (id) return id;
-  id = Math.random().toString(36).slice(2, 10);
-  localStorage.setItem(PLAYER_ID_KEY, id);
-  return id;
+const playerStyle = loadPlayerStyle();
+const sessionId = Math.random().toString(36).slice(2, 10);
+
+let wallet = localStorage.getItem(WALLET_KEY) || null;
+let walletConnected = false;
+
+function shortWallet(addr) {
+  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }
 
-const playerId = loadPlayerId();
-const playerStyle = loadPlayerStyle();
+function hatForLevel(level) {
+  if (level >= 20) return "👑";
+  if (level >= 10) return "🎩";
+  if (level >= 5) return "🧢";
+  return null;
+}
 
+// --- Input ---
 const keys = {};
 window.addEventListener("keydown", (e) => {
   const k = e.key.toLowerCase();
@@ -141,6 +210,7 @@ function nearbyNode() {
 }
 
 function tryGather() {
+  if (!walletConnected) return;
   const now = Date.now();
   const node = nearbyNode();
   if (!node || node.gathering || now < node.cooldownUntil) return;
@@ -149,6 +219,8 @@ function tryGather() {
 }
 
 function update() {
+  if (!walletConnected) return;
+
   let dx = 0;
   let dy = 0;
   if (keys["arrowup"] || keys["w"]) dy -= 1;
@@ -160,8 +232,8 @@ function update() {
     const len = Math.hypot(dx, dy);
     player.x += (dx / len) * player.speed;
     player.y += (dy / len) * player.speed;
-    player.x = Math.max(player.size / 2, Math.min(canvas.width - player.size / 2, player.x));
-    player.y = Math.max(player.size / 2, Math.min(canvas.height - player.size / 2, player.y));
+    player.x = Math.max(player.size / 2, Math.min(COLS * TILE - player.size / 2, player.x));
+    player.y = Math.max(player.size / 2, Math.min(ROWS * TILE - player.size / 2, player.y));
   }
 
   const now = Date.now();
@@ -181,7 +253,9 @@ function update() {
       const [min, max] = def.reward;
       const reward = min + Math.random() * (max - min);
       setBalance(getBalance() + reward);
+      setXp(getXp() + reward);
       floatingTexts.push({ x: cx, y: cy, text: `+${reward.toFixed(2)} $FARM`, life: 900, start: now, color: "#4ade80" });
+      syncPlayerToServer();
     }
 
     node.gathering = null;
@@ -193,37 +267,64 @@ function update() {
   }
 }
 
+function getCamera() {
+  let x = player.x - VIEW_W / 2;
+  let y = player.y - VIEW_H / 2;
+  x = Math.max(0, Math.min(COLS * TILE - VIEW_W, x));
+  y = Math.max(0, Math.min(ROWS * TILE - VIEW_H, y));
+  return { x, y };
+}
+
 function draw() {
-  // terrain
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      ctx.fillStyle = ZONE_COLORS[zoneAt(c)];
+  const now = Date.now();
+  const cam = getCamera();
+
+  ctx.fillStyle = "#0c1014";
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+  ctx.save();
+  ctx.translate(-cam.x, -cam.y);
+
+  const startCol = Math.max(0, Math.floor(cam.x / TILE));
+  const endCol = Math.min(COLS, Math.ceil((cam.x + VIEW_W) / TILE));
+  const startRow = Math.max(0, Math.floor(cam.y / TILE));
+  const endRow = Math.min(ROWS, Math.ceil((cam.y + VIEW_H) / TILE));
+
+  for (let r = startRow; r < endRow; r++) {
+    for (let c = startCol; c < endCol; c++) {
+      ctx.fillStyle = terrainColor(c, r, now);
       ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
     }
   }
 
-  // grid
-  ctx.strokeStyle = "rgba(0,0,0,0.12)";
+  ctx.strokeStyle = "rgba(0,0,0,0.08)";
   ctx.lineWidth = 1;
-  for (let c = 0; c <= COLS; c++) {
+  for (let c = startCol; c <= endCol; c++) {
     ctx.beginPath();
-    ctx.moveTo(c * TILE, 0);
-    ctx.lineTo(c * TILE, canvas.height);
+    ctx.moveTo(c * TILE, startRow * TILE);
+    ctx.lineTo(c * TILE, endRow * TILE);
     ctx.stroke();
   }
-  for (let r = 0; r <= ROWS; r++) {
+  for (let r = startRow; r <= endRow; r++) {
     ctx.beginPath();
-    ctx.moveTo(0, r * TILE);
-    ctx.lineTo(canvas.width, r * TILE);
+    ctx.moveTo(startCol * TILE, r * TILE);
+    ctx.lineTo(endCol * TILE, r * TILE);
     ctx.stroke();
   }
-
-  const now = Date.now();
-  const active = nearbyNode();
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
+  for (const d of decorations) {
+    if (d.col < startCol - 1 || d.col > endCol || d.row < startRow - 1 || d.row > endRow) continue;
+    ctx.save();
+    ctx.globalAlpha = 0.85;
+    ctx.font = "20px serif";
+    ctx.fillText(d.icon, d.col * TILE + TILE / 2, d.row * TILE + TILE / 2);
+    ctx.restore();
+  }
+
+  const active = nearbyNode();
   for (const node of nodes) {
     const def = RESOURCE_TYPES[node.type];
     const cx = node.col * TILE + TILE / 2;
@@ -235,7 +336,7 @@ function draw() {
       ctx.arc(cx, cy, TILE / 2 - 2, 0, Math.PI * 2);
       ctx.strokeStyle = RARITY_COLORS[def.rarity];
       ctx.lineWidth = 2;
-      ctx.globalAlpha = onCooldown ? 0.25 : 0.8;
+      ctx.globalAlpha = onCooldown ? 0.25 : 0.85;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
@@ -264,16 +365,15 @@ function draw() {
     }
   }
 
-  // other players
-  drawCharacter(player.x, player.y, playerStyle.emoji, playerStyle.color, null);
   const cutoff = now - 8000;
   for (const id in otherPlayers) {
     const p = otherPlayers[id];
     if (p.ts < cutoff) continue;
-    drawCharacter(p.x, p.y, p.emoji, p.color, id.slice(0, 4));
+    drawCharacter(p.x, p.y, { emoji: p.emoji, color: p.color }, p.level || 1, p.label || "anon");
   }
 
-  // floating texts
+  drawCharacter(player.x, player.y, playerStyle, levelForXp(getXp()), wallet ? shortWallet(wallet) : "you");
+
   for (const ft of floatingTexts) {
     const elapsed = now - ft.start;
     const progress = elapsed / ft.life;
@@ -284,25 +384,55 @@ function draw() {
     ctx.fillText(ft.text, ft.x, ft.y - progress * 22);
     ctx.restore();
   }
+
+  ctx.restore();
 }
 
-function drawCharacter(x, y, emoji, color, label) {
+function drawCharacter(x, y, style, level, label) {
+  const r = player.size / 2;
+
+  // shadow
   ctx.beginPath();
-  ctx.arc(x, y, player.size / 2, 0, Math.PI * 2);
-  ctx.fillStyle = color;
+  ctx.ellipse(x, y + r + 2, r, r / 2.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.fill();
-  ctx.strokeStyle = "#000";
+
+  // body with glossy gradient
+  const grad = ctx.createRadialGradient(x - r / 2.5, y - r / 2.5, 1, x, y, r);
+  grad.addColorStop(0, "rgba(255,255,255,0.95)");
+  grad.addColorStop(0.35, style.color);
+  grad.addColorStop(1, style.color);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
   ctx.lineWidth = 2;
   ctx.stroke();
+
+  // face
   ctx.font = "18px serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(emoji, x, y + 1);
-  if (label) {
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 10px sans-serif";
-    ctx.fillText(label, x, y - player.size / 2 - 6);
+  ctx.fillStyle = "#000";
+  ctx.fillText(style.emoji, x, y + 1);
+
+  // hat for higher levels
+  const hat = hatForLevel(level);
+  if (hat) {
+    ctx.font = "16px serif";
+    ctx.fillText(hat, x, y - r - 4);
   }
+
+  // name + level tag
+  const text = `Lv.${level}  ${label}`;
+  ctx.font = "bold 10px sans-serif";
+  const w = ctx.measureText(text).width + 10;
+  const tagY = y - r - (hat ? 24 : 14);
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.fillRect(x - w / 2, tagY - 7, w, 14);
+  ctx.fillStyle = "#fff";
+  ctx.fillText(text, x, tagY);
 }
 
 function loop() {
@@ -312,13 +442,61 @@ function loop() {
 }
 
 setBalance(getBalance());
-loop();
+setXp(getXp());
 
-// --- Multiplayer (Supabase Realtime) ---
+// --- Wallet gate ---
+function getProvider() {
+  return window?.phantom?.solana || window.solana || null;
+}
+
+function unlockGame() {
+  walletConnected = true;
+  walletGate.classList.add("hidden");
+  loadPlayerFromServer();
+}
+
+async function connectWallet() {
+  const provider = getProvider();
+  if (!provider) {
+    gateStatus.textContent = "No Solana wallet found. Install Phantom (phantom.app) and refresh.";
+    return;
+  }
+  try {
+    gateStatus.textContent = "Connecting...";
+    const resp = await provider.connect();
+    wallet = resp.publicKey.toString();
+    localStorage.setItem(WALLET_KEY, wallet);
+    unlockGame();
+  } catch (err) {
+    gateStatus.textContent = "Connection cancelled — try again.";
+  }
+}
+
+gateConnectBtn.addEventListener("click", connectWallet);
+
+(async function tryAutoConnect() {
+  const provider = getProvider();
+  if (!wallet || !provider) return;
+  try {
+    const resp = await provider.connect({ onlyIfTrusted: true });
+    if (resp.publicKey.toString() === wallet) {
+      unlockGame();
+    }
+  } catch (err) {
+    // not auto-approved; player must click connect
+  }
+})();
+
+// --- Multiplayer + leaderboard (Supabase) ---
+let supabaseClient = null;
+if (window.SUPABASE_URL && window.SUPABASE_ANON_KEY && typeof window.supabase !== "undefined") {
+  supabaseClient = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+}
+
 function updateOnlineCount() {
   const now = Date.now();
   const cutoff = now - 8000;
-  let count = 1; // include self
+  let count = 1; // self
   for (const id in otherPlayers) {
     if (otherPlayers[id].ts >= cutoff) count++;
   }
@@ -326,26 +504,20 @@ function updateOnlineCount() {
 }
 setInterval(updateOnlineCount, 1000);
 
-(function initMultiplayer() {
-  const url = window.SUPABASE_URL;
-  const key = window.SUPABASE_ANON_KEY;
-  if (!url || !key || typeof window.supabase === "undefined") {
-    onlineCountEl.textContent = "Offline";
-    return;
-  }
-
-  const client = window.supabase.createClient(url, key);
-  const channel = client.channel("farm-world", {
+if (supabaseClient) {
+  const channel = supabaseClient.channel("farm-world", {
     config: { broadcast: { self: false } },
   });
 
   channel.on("broadcast", { event: "move" }, ({ payload }) => {
-    if (!payload || payload.id === playerId) return;
+    if (!payload || payload.id === sessionId) return;
     otherPlayers[payload.id] = {
       x: payload.x,
       y: payload.y,
       emoji: payload.emoji,
       color: payload.color,
+      level: payload.level,
+      label: payload.label,
       ts: Date.now(),
     };
     updateOnlineCount();
@@ -359,14 +531,95 @@ setInterval(updateOnlineCount, 1000);
           type: "broadcast",
           event: "move",
           payload: {
-            id: playerId,
+            id: sessionId,
             x: Math.round(player.x),
             y: Math.round(player.y),
             emoji: playerStyle.emoji,
             color: playerStyle.color,
+            level: levelForXp(getXp()),
+            label: wallet ? shortWallet(wallet) : "anon",
           },
         });
       }, 120);
     }
   });
-})();
+} else {
+  onlineCountEl.textContent = "Offline";
+}
+
+async function loadPlayerFromServer() {
+  if (!supabaseClient || !wallet) return;
+  try {
+    const { data } = await supabaseClient.from("players").select("*").eq("wallet", wallet).maybeSingle();
+    if (data) {
+      const serverXp = parseFloat(data.xp) || 0;
+      const serverBalance = parseFloat(data.balance) || 0;
+      if (serverXp > getXp()) setXp(serverXp);
+      if (serverBalance > getBalance()) setBalance(serverBalance);
+    }
+  } catch (err) {
+    console.warn("Could not load player from Supabase", err);
+  }
+  syncPlayerToServer();
+  refreshLeaderboard();
+}
+
+async function syncPlayerToServer() {
+  if (!supabaseClient || !wallet) return;
+  const xp = getXp();
+  const balance = getBalance();
+  const level = levelForXp(xp);
+  try {
+    await supabaseClient.from("players").upsert({
+      wallet,
+      level,
+      xp,
+      balance,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn("Could not sync player to Supabase", err);
+  }
+}
+
+async function refreshLeaderboard() {
+  if (!supabaseClient) {
+    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Multiplayer not configured.</li>';
+    return;
+  }
+  try {
+    const { data, error } = await supabaseClient
+      .from("players")
+      .select("wallet, level, xp")
+      .order("xp", { ascending: false })
+      .limit(10);
+    if (error) throw error;
+    renderLeaderboard(data || []);
+  } catch (err) {
+    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">Leaderboard unavailable — run supabase/schema.sql in your Supabase project.</li>';
+  }
+}
+
+function renderLeaderboard(rows) {
+  if (!rows.length) {
+    leaderboardListEl.innerHTML = '<li class="leaderboard-empty">No grinders yet — be the first!</li>';
+    return;
+  }
+  leaderboardListEl.innerHTML = rows
+    .map((row, i) => {
+      const isSelf = wallet && row.wallet === wallet;
+      return `<li class="${isSelf ? "self" : ""}">
+        <span class="rank">#${i + 1}</span>
+        <span class="wallet">${shortWallet(row.wallet)}</span>
+        <span class="level">Lv.${row.level}</span>
+        <span class="xp">${Math.floor(row.xp)} XP</span>
+      </li>`;
+    })
+    .join("");
+}
+
+setInterval(refreshLeaderboard, 8000);
+setInterval(syncPlayerToServer, 10000);
+refreshLeaderboard();
+
+loop();

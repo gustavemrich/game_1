@@ -193,6 +193,123 @@ main {
   color: var(--accent);
 }
 
+#levelDisplay {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.canvas-frame {
+  position: relative;
+  max-width: 100%;
+}
+
+.wallet-gate {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 12, 16, 0.82);
+  border-radius: 8px;
+  backdrop-filter: blur(2px);
+}
+
+.wallet-gate.hidden {
+  display: none;
+}
+
+.wallet-gate-card {
+  text-align: center;
+  max-width: 320px;
+  padding: 24px;
+}
+
+.wallet-gate-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+}
+
+.wallet-gate-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.wallet-gate-card .note {
+  min-height: 1.2em;
+}
+
+.leaderboard {
+  width: 100%;
+  max-width: 800px;
+  margin: 24px auto 0;
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.leaderboard h2 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaderboard-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.03);
+  font-size: 0.9rem;
+}
+
+.leaderboard-list li.self {
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.leaderboard-list .rank {
+  color: var(--muted);
+  font-weight: 700;
+  width: 28px;
+}
+
+.leaderboard-list .wallet {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text);
+}
+
+.leaderboard-list .level {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.leaderboard-list .xp {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 80px;
+  text-align: right;
+}
+
+.leaderboard-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 12px;
+}
+
 footer {
   text-align: center;
   padding: 16px;

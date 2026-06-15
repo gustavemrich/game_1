@@ -21,6 +21,10 @@
     <span id="onlineCount">1 player</span>
   </div>
   <div class="balance-pill">
+    <span class="balance-label">Level</span>
+    <span id="levelDisplay">Lv. 1</span>
+  </div>
+  <div class="balance-pill">
     <span class="balance-label">Balance</span>
     <span id="balance">0.00 $FARM</span>
   </div>
@@ -29,11 +33,21 @@
 <main>
   <section class="hero">
     <h1>Farm. Fish. Mine. Earn $FARM.</h1>
-    <p>Walk around the world and gather resources from the fields, the lake, and the mountains. Every haul earns you $FARM tokens — head to the <a href="/swap">Swap</a> page to check your stash and get ready for launch.</p>
+    <p>Walk around the bigger world and gather resources from the fields, the lake, and the mountains. Every haul earns you $FARM and XP — level up, climb the leaderboard, and head to the <a href="/swap">Swap</a> page to check your stash.</p>
   </section>
 
   <section class="game-wrap">
-    <canvas id="game"></canvas>
+    <div class="canvas-frame">
+      <canvas id="game"></canvas>
+      <div class="wallet-gate" id="walletGate">
+        <div class="wallet-gate-card">
+          <h2>Connect your Solana wallet to play</h2>
+          <p>Your wallet address is your $FARM account — it's how your level, XP, and leaderboard spot are saved.</p>
+          <button class="btn-primary" id="gateConnectBtn">Connect Wallet</button>
+          <p class="note" id="gateStatus"></p>
+        </div>
+      </div>
+    </div>
     <div class="hud">
       <div class="hud-row"><strong>Move:</strong> Arrow keys / WASD</div>
       <div class="hud-row"><strong>Gather:</strong> Press E or Space near a resource spot</div>
@@ -52,6 +66,13 @@
         <span><span class="rarity-dot" style="background: #facc15"></span> Rare (longer, bigger reward)</span>
       </div>
     </div>
+  </section>
+
+  <section class="leaderboard">
+    <h2>🏆 Top Grinders</h2>
+    <ol class="leaderboard-list" id="leaderboardList">
+      <li class="leaderboard-empty">Connect your wallet and start gathering to appear here.</li>
+    </ol>
   </section>
 </main>
 
