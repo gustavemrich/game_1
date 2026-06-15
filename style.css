@@ -234,6 +234,83 @@ main {
   max-width: 100%;
 }
 
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background:
+    radial-gradient(1.5px 1.5px at 12% 22%, rgba(255,255,255,0.55) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 78% 14%, rgba(255,255,255,0.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 55% 28%, rgba(255,255,255,0.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 35% 12%, rgba(255,255,255,0.4) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 92% 38%, rgba(255,255,255,0.3) 50%, transparent 51%),
+    radial-gradient(1px 1px at 6% 45%, rgba(255,255,255,0.3) 50%, transparent 51%),
+    linear-gradient(180deg, #0a0e14 0%, #0c1410 55%, #16331c 100%);
+}
+
+.start-screen.hidden {
+  display: none;
+}
+
+.start-screen-card {
+  max-width: 480px;
+  padding: 32px 24px;
+}
+
+.start-logo {
+  font-size: 4rem;
+  margin-bottom: 8px;
+}
+
+.start-screen-card h1 {
+  font-size: 3rem;
+  margin: 0 0 12px;
+  color: var(--gold);
+  letter-spacing: 3px;
+  text-shadow: 0 2px 10px rgba(250, 204, 21, 0.25);
+}
+
+.start-screen-card p {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 auto 24px;
+}
+
+.start-btn {
+  font-size: 1.1rem;
+  padding: 14px 40px;
+  cursor: pointer;
+  border: none;
+}
+
+.start-stats {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.start-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: 0 0 6px var(--accent);
+}
+
 .wallet-gate {
   position: absolute;
   inset: 0;

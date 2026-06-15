@@ -25,6 +25,9 @@ const walletGate = document.getElementById("walletGate");
 const gateConnectBtn = document.getElementById("gateConnectBtn");
 const gateStatus = document.getElementById("gateStatus");
 const leaderboardListEl = document.getElementById("leaderboardList");
+const startScreen = document.getElementById("startScreen");
+const startPlayBtn = document.getElementById("startPlayBtn");
+const startOnlineCountEl = document.getElementById("startOnlineCount");
 
 const otherPlayers = {};
 
@@ -623,6 +626,10 @@ async function connectWallet() {
 
 gateConnectBtn.addEventListener("click", connectWallet);
 
+startPlayBtn.addEventListener("click", () => {
+  startScreen.classList.add("hidden");
+});
+
 (async function tryAutoConnect() {
   const provider = getProvider();
   if (!wallet || !provider) return;
@@ -649,7 +656,9 @@ function updateOnlineCount() {
   for (const id in otherPlayers) {
     if (otherPlayers[id].ts >= cutoff) count++;
   }
-  onlineCountEl.textContent = `${count} player${count === 1 ? "" : "s"}`;
+  const label = `${count} player${count === 1 ? "" : "s"}`;
+  onlineCountEl.textContent = label;
+  startOnlineCountEl.textContent = `${label} online`;
 }
 setInterval(updateOnlineCount, 1000);
 
@@ -677,6 +686,7 @@ if (supabaseClient) {
   channel.subscribe((status) => {
     if (status === "SUBSCRIBED") {
       onlineCountEl.textContent = "1 player";
+      startOnlineCountEl.textContent = "1 player online";
       setInterval(() => {
         let activeNode = nearbyNode();
         for (const node of nodes) {
@@ -705,6 +715,7 @@ if (supabaseClient) {
   });
 } else {
   onlineCountEl.textContent = "Offline";
+  startOnlineCountEl.textContent = "Offline";
 }
 
 async function loadPlayerFromServer() {
