@@ -1,11 +1,6 @@
-const TOKEN_KEY = "farmTokenBalance";
-const XP_KEY = "farmXp";
 const WALLET_KEY = "farmWallet";
 const PLAYER_STYLE_KEY = "farmPlayerStyle";
 const NAME_KEY = "farmPlayerName";
-const MINING_XP_KEY = "farmMiningXp";
-const FISHING_XP_KEY = "farmFishingXp";
-const FARMING_XP_KEY = "farmFarmingXp";
 
 const TILE = 32;
 const COLS = 70;
@@ -45,13 +40,14 @@ const chatInputEl = document.getElementById("chatInput");
 
 const otherPlayers = {};
 
-// --- Balance & XP / leveling ---
-function getBalance() {
-  return parseFloat(localStorage.getItem(TOKEN_KEY) || "0");
-}
+// --- In-memory game state (not stored in localStorage — server is source of truth) ---
+let memBalance = 0;
+let memXp = 0;
+const categoryXp = { farming: 0, fishing: 0, mining: 0 };
 
+function getBalance() { return memBalance; }
 function setBalance(value) {
-  localStorage.setItem(TOKEN_KEY, value.toFixed(2));
+  memBalance = value;
   balanceEl.textContent = `${value.toFixed(2)} $FARM`;
 }
 
@@ -59,34 +55,17 @@ function levelForXp(xp) {
   return Math.floor(xp / 100) + 1;
 }
 
-function getXp() {
-  return parseFloat(localStorage.getItem(XP_KEY) || "0");
-}
-
+function getXp() { return memXp; }
 function setXp(value) {
-  localStorage.setItem(XP_KEY, value.toFixed(2));
+  memXp = value;
   levelDisplayEl.textContent = `Lv. ${levelForXp(value)}`;
 }
 
-function getCategoryXp(key) {
-  return parseFloat(localStorage.getItem(key) || "0");
-}
-
-function setCategoryXp(key, value) {
-  localStorage.setItem(key, value.toFixed(2));
-}
-
-function getMiningXp() {
-  return getCategoryXp(MINING_XP_KEY);
-}
-
-function getFishingXp() {
-  return getCategoryXp(FISHING_XP_KEY);
-}
-
-function getFarmingXp() {
-  return getCategoryXp(FARMING_XP_KEY);
-}
+function getCategoryXp(cat) { return categoryXp[cat] || 0; }
+function setCategoryXp(cat, value) { categoryXp[cat] = value; }
+function getMiningXp() { return categoryXp.mining; }
+function getFishingXp() { return categoryXp.fishing; }
+function getFarmingXp() { return categoryXp.farming; }
 
 // --- Display name ---
 function getName() {
@@ -100,7 +79,6 @@ function setName(value) {
   } else {
     localStorage.removeItem(NAME_KEY);
   }
-  updateNameBtn();
 }
 
 function displayName(fallback) {
@@ -156,12 +134,6 @@ const RESOURCE_CATEGORY = {
   copper: "mining",
   silver: "mining",
   gold: "mining",
-};
-
-const CATEGORY_XP_KEYS = {
-  farming: FARMING_XP_KEY,
-  fishing: FISHING_XP_KEY,
-  mining: MINING_XP_KEY,
 };
 
 // --- Deterministic world layout (same map for every player) ---
@@ -469,10 +441,7 @@ function update() {
       setBalance(getBalance() + reward);
       setXp(getXp() + reward);
       const category = RESOURCE_CATEGORY[node.type];
-      if (category) {
-        const key = CATEGORY_XP_KEYS[category];
-        setCategoryXp(key, getCategoryXp(key) + reward);
-      }
+      if (category) setCategoryXp(category, getCategoryXp(category) + reward);
       floatingTexts.push({ x: cx, y: cy, text: `+${reward.toFixed(2)} $FARM`, life: 900, start: now, color: "#4ade80" });
       syncPlayerToServer();
     }
@@ -733,9 +702,6 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-setBalance(getBalance());
-setXp(getXp());
-
 // --- Wallet gate ---
 function getProvider() {
   return window?.phantom?.solana || window.solana || null;
@@ -916,16 +882,12 @@ async function loadPlayerFromServer() {
   try {
     const { data } = await supabaseClient.from("players").select("*").eq("wallet", wallet).maybeSingle();
     if (data) {
-      const serverXp = parseFloat(data.xp) || 0;
-      const serverBalance = parseFloat(data.balance) || 0;
-      const serverMiningXp = parseFloat(data.mining_xp) || 0;
-      const serverFishingXp = parseFloat(data.fishing_xp) || 0;
-      const serverFarmingXp = parseFloat(data.farming_xp) || 0;
-      if (serverXp > getXp()) setXp(serverXp);
-      if (serverBalance > getBalance()) setBalance(serverBalance);
-      if (serverMiningXp > getMiningXp()) setCategoryXp(MINING_XP_KEY, serverMiningXp);
-      if (serverFishingXp > getFishingXp()) setCategoryXp(FISHING_XP_KEY, serverFishingXp);
-      if (serverFarmingXp > getFarmingXp()) setCategoryXp(FARMING_XP_KEY, serverFarmingXp);
+      // Always use server values — localStorage is never the source of truth for stats
+      setXp(parseFloat(data.xp) || 0);
+      setBalance(parseFloat(data.balance) || 0);
+      setCategoryXp("mining", parseFloat(data.mining_xp) || 0);
+      setCategoryXp("fishing", parseFloat(data.fishing_xp) || 0);
+      setCategoryXp("farming", parseFloat(data.farming_xp) || 0);
       if (data.name && !getName()) setName(data.name);
     }
   } catch (err) {

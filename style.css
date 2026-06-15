@@ -521,11 +521,23 @@ footer {
   border: 1px solid rgba(250, 204, 21, 0.25);
   font-weight: 600;
   letter-spacing: 0.5px;
+  text-decoration: none;
+  color: var(--text);
 }
 
 .ca-pill .ca-value {
   color: var(--gold);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ca-topbar {
+  font-size: 0.8rem;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ca-topbar:hover {
+  background: rgba(250, 204, 21, 0.15);
+  border-color: rgba(250, 204, 21, 0.5);
 }
 
 /* Swap page */

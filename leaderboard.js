@@ -1,6 +1,4 @@
 const WALLET_KEY = "farmWallet";
-const XP_KEY = "farmXp";
-const TOKEN_KEY = "farmTokenBalance";
 
 const wallet = localStorage.getItem(WALLET_KEY) || null;
 
@@ -23,16 +21,22 @@ function levelForXp(xp) {
   return Math.floor(xp / 100) + 1;
 }
 
-function getXp() {
-  return parseFloat(localStorage.getItem(XP_KEY) || "0");
+// Fetch own stats from server — localStorage is not the source of truth
+async function loadOwnStats() {
+  if (!supabaseClient || !wallet) return;
+  const { data } = await supabaseClient
+    .from("players")
+    .select("xp, balance")
+    .eq("wallet", wallet)
+    .maybeSingle();
+  if (data) {
+    const xp = parseFloat(data.xp) || 0;
+    const bal = parseFloat(data.balance) || 0;
+    levelDisplayEl.textContent = `Lv. ${levelForXp(xp)}`;
+    balanceEl.textContent = `${bal.toFixed(2)} $FARM`;
+  }
 }
-
-function getBalance() {
-  return parseFloat(localStorage.getItem(TOKEN_KEY) || "0");
-}
-
-balanceEl.textContent = `${getBalance().toFixed(2)} $FARM`;
-levelDisplayEl.textContent = `Lv. ${levelForXp(getXp())}`;
+loadOwnStats();
 
 // --- Online player count ---
 const otherPlayers = {};
