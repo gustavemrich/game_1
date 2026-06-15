@@ -489,45 +489,82 @@ function draw() {
 
 function drawCharacter(x, y, style, level, label, tool, gathering) {
   const r = player.size / 2;
+  const bob = gathering ? Math.sin(Date.now() / 100) * 1.5 : 0;
 
   // shadow
   ctx.beginPath();
-  ctx.ellipse(x, y + r + 2, r, r / 2.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y + r + 4, r * 0.95, r / 2.8, 0, 0, Math.PI * 2);
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.fill();
 
-  // body with glossy gradient
-  const grad = ctx.createRadialGradient(x - r / 2.5, y - r / 2.5, 1, x, y, r);
-  grad.addColorStop(0, "rgba(255,255,255,0.95)");
-  grad.addColorStop(0.35, style.color);
-  grad.addColorStop(1, style.color);
+  const headR = r * 0.62;
+  const bodyW = r * 1.5;
+  const bodyH = r * 1.5;
+  const bodyTop = y - r * 0.3 + bob;
+  const bodyBottom = bodyTop + bodyH;
+  const headCY = bodyTop - headR * 0.75;
+  const topOfHead = headCY - headR;
+
+  // legs
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  const legW = bodyW * 0.32;
+  ctx.fillRect(x - bodyW / 2 + 1, bodyBottom - 2, legW, r * 0.8);
+  ctx.fillRect(x + bodyW / 2 - legW - 1, bodyBottom - 2, legW, r * 0.8);
+
+  // arms
+  ctx.fillStyle = style.color;
   ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = grad;
+  ctx.ellipse(x - bodyW / 2, bodyTop + bodyH * 0.35, r * 0.28, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + bodyW / 2, bodyTop + bodyH * 0.35, r * 0.28, r * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // torso with glossy gradient
+  const bodyGrad = ctx.createLinearGradient(x, bodyTop, x, bodyBottom);
+  bodyGrad.addColorStop(0, "rgba(255,255,255,0.55)");
+  bodyGrad.addColorStop(0.45, style.color);
+  bodyGrad.addColorStop(1, style.color);
+  ctx.beginPath();
+  ctx.roundRect(x - bodyW / 2, bodyTop, bodyW, bodyH, r * 0.4);
+  ctx.fillStyle = bodyGrad;
   ctx.fill();
   ctx.strokeStyle = "rgba(0,0,0,0.45)";
   ctx.lineWidth = 2;
   ctx.stroke();
 
+  // head
+  const headGrad = ctx.createRadialGradient(x - headR / 2.5, headCY - headR / 2.5, 1, x, headCY, headR);
+  headGrad.addColorStop(0, "rgba(255,255,255,0.95)");
+  headGrad.addColorStop(0.4, "#ffd9a8");
+  headGrad.addColorStop(1, "#e8a86c");
+  ctx.beginPath();
+  ctx.arc(x, headCY, headR, 0, Math.PI * 2);
+  ctx.fillStyle = headGrad;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,0.45)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
   // face
-  ctx.font = "18px serif";
+  ctx.font = `${Math.round(headR * 1.5)}px serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#000";
-  ctx.fillText(style.emoji, x, y + 1);
+  ctx.fillText(style.emoji, x, headCY + 1);
 
   // hat for higher levels
   const hat = hatForLevel(level);
   if (hat) {
     ctx.font = "16px serif";
-    ctx.fillText(hat, x, y - r - 4);
+    ctx.fillText(hat, x, topOfHead - 2);
   }
 
   // name + level tag
   const text = `Lv.${level}  ${label}`;
   ctx.font = "bold 10px sans-serif";
   const w = ctx.measureText(text).width + 10;
-  const tagY = y - r - (hat ? 24 : 14);
+  const tagY = topOfHead - (hat ? 18 : 8);
   ctx.fillStyle = "rgba(0,0,0,0.6)";
   ctx.fillRect(x - w / 2, tagY - 7, w, 14);
   ctx.fillStyle = "#fff";
@@ -537,7 +574,7 @@ function drawCharacter(x, y, style, level, label, tool, gathering) {
   if (tool) {
     ctx.save();
     const angle = gathering ? -0.6 + Math.sin(Date.now() / 90) * 0.5 : -0.35;
-    ctx.translate(x + r + 6, y + r / 2);
+    ctx.translate(x + bodyW / 2 + 4, bodyTop + bodyH * 0.35);
     ctx.rotate(angle);
     ctx.font = "18px serif";
     ctx.textAlign = "center";
