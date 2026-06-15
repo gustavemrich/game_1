@@ -357,6 +357,34 @@ function tryGather() {
   node.gathering = { start: now, duration: def.gatherTime };
 }
 
+// --- Point & click movement / gathering ---
+let moveTarget = null;
+let gatherTarget = null;
+
+function findNodeAt(col, row) {
+  return nodes.find((n) => n.col === col && n.row === row) || null;
+}
+
+canvas.addEventListener("click", (e) => {
+  if (!walletConnected) return;
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+  const cam = getCamera();
+  const worldX = clickX + cam.x;
+  const worldY = clickY + cam.y;
+  const col = Math.floor(worldX / TILE);
+  const row = Math.floor(worldY / TILE);
+  const node = findNodeAt(col, row);
+  if (node) {
+    gatherTarget = node;
+    moveTarget = { x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 };
+  } else {
+    gatherTarget = null;
+    moveTarget = { x: worldX, y: worldY };
+  }
+});
+
 function update() {
   if (!walletConnected) return;
 
@@ -369,6 +397,26 @@ function update() {
     if (keys["arrowdown"] || keys["s"]) dy += 1;
     if (keys["arrowleft"] || keys["a"]) dx -= 1;
     if (keys["arrowright"] || keys["d"]) dx += 1;
+
+    if (dx || dy) {
+      moveTarget = null;
+      gatherTarget = null;
+    } else if (moveTarget) {
+      const tdx = moveTarget.x - player.x;
+      const tdy = moveTarget.y - player.y;
+      const dist = Math.hypot(tdx, tdy);
+      const arriveDist = gatherTarget ? TILE * 0.6 : 4;
+      if (dist <= arriveDist) {
+        moveTarget = null;
+        if (gatherTarget) {
+          gatherTarget = null;
+          tryGather();
+        }
+      } else {
+        dx = tdx / dist;
+        dy = tdy / dist;
+      }
+    }
   }
 
   // Smoothly accelerate/decelerate towards the target direction so
