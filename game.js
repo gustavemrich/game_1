@@ -88,17 +88,17 @@ const RARITY_COLORS = {
 
 // --- Resource tiers ---
 const RESOURCE_TYPES = {
-  wheat: { icon: "🌾", gatherTime: 1000, cooldown: 8000, reward: [1, 3], fail: 0, rarity: "common" },
-  corn: { icon: "🌽", gatherTime: 2500, cooldown: 18000, reward: [4, 8], fail: 0, rarity: "uncommon" },
-  pumpkin: { icon: "🎃", gatherTime: 5000, cooldown: 40000, reward: [10, 18], fail: 0, rarity: "rare" },
+  wheat: { icon: "🌾", gatherTime: 1500, cooldown: 8000, reward: [1, 3], fail: 0, rarity: "common" },
+  corn: { icon: "🌽", gatherTime: 3500, cooldown: 18000, reward: [4, 8], fail: 0, rarity: "uncommon" },
+  pumpkin: { icon: "🎃", gatherTime: 7000, cooldown: 40000, reward: [10, 18], fail: 0, rarity: "rare" },
 
-  commonFish: { icon: "🐟", gatherTime: 1500, cooldown: 12000, reward: [2, 5], fail: 0.25, rarity: "common" },
-  bigFish: { icon: "🐡", gatherTime: 3500, cooldown: 28000, reward: [8, 15], fail: 0.35, rarity: "uncommon" },
-  legendaryFish: { icon: "🦈", gatherTime: 7000, cooldown: 75000, reward: [25, 45], fail: 0.45, rarity: "rare" },
+  commonFish: { icon: "🐟", gatherTime: 2200, cooldown: 12000, reward: [2, 5], fail: 0.25, rarity: "common" },
+  bigFish: { icon: "🐡", gatherTime: 5000, cooldown: 28000, reward: [8, 15], fail: 0.35, rarity: "uncommon" },
+  legendaryFish: { icon: "🦈", gatherTime: 9500, cooldown: 75000, reward: [25, 45], fail: 0.45, rarity: "rare" },
 
-  copper: { icon: "⛏️", gatherTime: 2000, cooldown: 16000, reward: [3, 7], fail: 0, rarity: "common" },
-  silver: { icon: "🔩", gatherTime: 4500, cooldown: 38000, reward: [12, 22], fail: 0, rarity: "uncommon" },
-  gold: { icon: "💎", gatherTime: 9000, cooldown: 100000, reward: [35, 60], fail: 0.2, rarity: "rare" },
+  copper: { icon: "⛏️", gatherTime: 2800, cooldown: 16000, reward: [3, 7], fail: 0, rarity: "common" },
+  silver: { icon: "🔩", gatherTime: 6000, cooldown: 38000, reward: [12, 22], fail: 0, rarity: "uncommon" },
+  gold: { icon: "💎", gatherTime: 12000, cooldown: 100000, reward: [35, 60], fail: 0.2, rarity: "rare" },
 };
 
 // --- Deterministic world layout (same map for every player) ---
@@ -312,39 +312,47 @@ function tryGather() {
 function update() {
   if (!walletConnected) return;
 
-  let dx = 0;
-  let dy = 0;
-  if (keys["arrowup"] || keys["w"]) dy -= 1;
-  if (keys["arrowdown"] || keys["s"]) dy += 1;
-  if (keys["arrowleft"] || keys["a"]) dx -= 1;
-  if (keys["arrowright"] || keys["d"]) dx += 1;
+  const isGathering = nodes.some((node) => node.gathering);
 
-  // Smoothly accelerate/decelerate towards the target direction so
-  // movement feels less twitchy and abrupt key taps don't snap the player.
-  const accel = 0.45;
-  const friction = 0.78;
-  if (dx || dy) {
-    const len = Math.hypot(dx, dy);
-    player.vx += (dx / len) * player.speed * accel;
-    player.vy += (dy / len) * player.speed * accel;
+  if (isGathering) {
+    // Freeze in place while working a resource node.
+    player.vx = 0;
+    player.vy = 0;
   } else {
-    player.vx *= friction;
-    player.vy *= friction;
-  }
+    let dx = 0;
+    let dy = 0;
+    if (keys["arrowup"] || keys["w"]) dy -= 1;
+    if (keys["arrowdown"] || keys["s"]) dy += 1;
+    if (keys["arrowleft"] || keys["a"]) dx -= 1;
+    if (keys["arrowright"] || keys["d"]) dx += 1;
 
-  const speedNow = Math.hypot(player.vx, player.vy);
-  if (speedNow > player.speed) {
-    player.vx = (player.vx / speedNow) * player.speed;
-    player.vy = (player.vy / speedNow) * player.speed;
-  }
-  if (Math.abs(player.vx) < 0.01) player.vx = 0;
-  if (Math.abs(player.vy) < 0.01) player.vy = 0;
+    // Smoothly accelerate/decelerate towards the target direction so
+    // movement feels less twitchy and abrupt key taps don't snap the player.
+    const accel = 0.3;
+    const friction = 0.86;
+    if (dx || dy) {
+      const len = Math.hypot(dx, dy);
+      player.vx += (dx / len) * player.speed * accel;
+      player.vy += (dy / len) * player.speed * accel;
+    } else {
+      player.vx *= friction;
+      player.vy *= friction;
+    }
 
-  if (player.vx || player.vy) {
-    player.x += player.vx;
-    player.y += player.vy;
-    player.x = Math.max(player.size / 2, Math.min(COLS * TILE - player.size / 2, player.x));
-    player.y = Math.max(player.size / 2, Math.min(ROWS * TILE - player.size / 2, player.y));
+    const speedNow = Math.hypot(player.vx, player.vy);
+    if (speedNow > player.speed) {
+      player.vx = (player.vx / speedNow) * player.speed;
+      player.vy = (player.vy / speedNow) * player.speed;
+    }
+    if (Math.abs(player.vx) < 0.01) player.vx = 0;
+    if (Math.abs(player.vy) < 0.01) player.vy = 0;
+
+    if (player.vx || player.vy) {
+      player.x += player.vx;
+      player.y += player.vy;
+      player.x = Math.max(player.size / 2, Math.min(COLS * TILE - player.size / 2, player.x));
+      player.y = Math.max(player.size / 2, Math.min(ROWS * TILE - player.size / 2, player.y));
+    }
   }
 
   const now = Date.now();
