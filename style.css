@@ -540,6 +540,13 @@ footer {
   border-color: rgba(250, 204, 21, 0.5);
 }
 
+.buy-btn {
+  padding: 10px 18px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 /* Swap page */
 .swap-card {
   background: var(--panel);
